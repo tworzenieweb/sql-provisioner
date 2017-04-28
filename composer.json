@@ -1,0 +1,14 @@
+{
+    "require": {
+        "jdorn/sql-formatter": "^1.2",
+        "symfony/console": "^3.2",
+        "symfony/dependency-injection": "^3.2",
+        "symfony/config": "^3.2",
+        "symfony/finder": "^3.2",
+        "symfony/filesystem": "^3.2",
+        "vlucas/phpdotenv": "^2.4"
+    },
+    "autoload": {
+        "psr-4": {"Tworzenieweb\\SqlProvisioner\\": "src/"}
+    }
+}
