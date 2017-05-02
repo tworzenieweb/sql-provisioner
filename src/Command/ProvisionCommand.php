@@ -95,7 +95,7 @@ EOF;
     /** @var bool */
     private $hasQueuedCandidates;
 
-    /** @var bool */
+    /** @var integer */
     private $queuedCandidatesCount;
 
 
@@ -383,7 +383,7 @@ DRAFT
 
     private function processQueuedCandidates()
     {
-        while ($this->workingDirectoryCandidates) {
+        while (!empty($this->workingDirectoryCandidates)) {
             $candidate = array_shift($this->workingDirectoryCandidates);
 
             if ($candidate->isQueued()) {
