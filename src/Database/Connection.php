@@ -91,7 +91,7 @@ class Connection
             $this->currentConnection = new PDO(
                 sprintf(self::DSN, $this->host, $this->port, $this->databaseName), $this->user, $this->password
             );
-            $this->currentConnection->setAttribute( PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION );
+            $this->currentConnection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             $this->currentConnection->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
             $this->currentConnection->setAttribute(PDO::MYSQL_ATTR_DIRECT_QUERY, false);
         }
