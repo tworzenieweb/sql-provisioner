@@ -22,6 +22,9 @@ class Candidate
     /** @var integer */
     private $index;
 
+    /** @var int */
+    private $number;
+
 
 
     /**

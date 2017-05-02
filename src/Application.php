@@ -36,7 +36,6 @@ class Application extends \Symfony\Component\Console\Application
         $loader->load('services.xml');
         $this->registerCommands();
         $this->registerChecks();
-
         $this->container->compile();
     }
 
@@ -72,6 +71,10 @@ class Application extends \Symfony\Component\Console\Application
      */
     protected function getCommandForId($commandId)
     {
+        if (!$this->container->has($commandId)) {
+            throw new \RuntimeException(sprintf('There is no command class for id %s', $commandId));
+        }
+
         return $this->container->get($commandId);
     }
 }

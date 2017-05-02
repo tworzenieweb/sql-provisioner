@@ -173,6 +173,7 @@ EOF;
 
         $this->loadDotEnv($input);
         $this->processWorkingDirectory();
+        $this->finish();
 
         return 0;
     }

@@ -18,6 +18,9 @@ class CandidateProcessor
     /** @var string */
     private $lastError;
 
+    /** @var Connection */
+    private $connection;
+
 
 
     public function __construct(Connection $connection)
@@ -45,6 +48,7 @@ class CandidateProcessor
         foreach ($this->checks as $check) {
             if ($check->execute($candidate, $connection)) {
                 $this->lastError = $check->getErrorCode();
+
                 return false;
             }
         }

@@ -11,7 +11,7 @@ use Tworzenieweb\SqlProvisioner\Model\Candidate;
  */
 class Executor
 {
-    /** @var PDO */
+    /** @var Connection */
     private $connection;
 
 
