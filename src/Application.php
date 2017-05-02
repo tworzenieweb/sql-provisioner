@@ -3,9 +3,9 @@
 namespace Tworzenieweb\SqlProvisioner;
 
 use Symfony\Component\Config\FileLocator;
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\XmlFileLoader;
-use Tworzenieweb\SqlProvisioner\Database\Executor;
 
 /**
  * @author Luke Adamczewski
@@ -43,7 +43,7 @@ class Application extends \Symfony\Component\Console\Application
     protected function registerCommands()
     {
         foreach ($this->container->findTaggedServiceIds('console.command') as $commandId => $command) {
-            $this->add($this->container->get($commandId));
+            $this->add($this->getCommandForId($commandId));
         }
     }
 
@@ -64,5 +64,14 @@ class Application extends \Symfony\Component\Console\Application
         foreach ($this->container->findTaggedServiceIds('provision.check') as $serviceId => $command) {
             $this->container->get('database.executor')->addCheck($this->container->get($serviceId));
         }
+    }
+
+    /**
+     * @param string $commandId
+     * @return Command
+     */
+    protected function getCommandForId($commandId)
+    {
+        return $this->container->get($commandId);
     }
 }

@@ -3,6 +3,7 @@
 namespace Tworzenieweb\SqlProvisioner\Command;
 
 use Dotenv\Dotenv;
+use RuntimeException;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -29,7 +30,11 @@ class ProvisionCommand extends Command
         'DATABASE_PORT',
         'DATABASE_HOST',
     ];
+    const TABLE_HEADERS = ['FILENAME', 'STATUS'];
+    const DELIMITER_STRING = '--//@UNDO';
 
+    /** @var array */
+    private $filesTable;
     /** @var Sql */
     private $sqlFormatter;
 
@@ -116,40 +121,26 @@ EOF
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $this->io = new SymfonyStyle($input, $output);
-        $output->writeln(sprintf('<bg=blue>Provisioning started at %s</>', date('Y-m-d H:i:s')));
+        $this->start($input, $output);
         $this->io->section('Working directory processing');
         $path = $input->getArgument('path');
         $this->workingDirectory = $this->buildAbsolutePath($path);
 
-        $this->loadDotEnv($input, $output);
+        $this->loadDotEnv($input);
         $this->loadOrCreateMetaFile();
         $this->processDbDeploys();
     }
 
-
-
     /**
-     * @param Finder $files
-     * @return array
+     * @param InputInterface $input
+     * @param OutputInterface $output
      */
-    protected function preCheckSqlFiles(Finder $files)
+    protected function start(InputInterface $input, OutputInterface $output)
     {
-        $data = [];
-        foreach ($files as $file) {
-            $currentSqlFile = $file->getFilename();
-            if (!in_array($currentSqlFile, $this->processedFiles)) {
-                array_push($data, [$currentSqlFile, '<comment>QUEUED</comment>']);
-                array_push($this->queuedSqlFiles, $file);
-            } else {
-                array_push($data, [$currentSqlFile, 'IGNORED']);
-            }
-        }
-
-        return $data;
+        $this->io = new SymfonyStyle($input, $output);
+        $this->io->title('SQL Provisioner');
+        $this->io->block(sprintf('Provisioning started at %s', date('Y-m-d H:i:s')));
     }
-
-
 
     /**
      * @param $path
@@ -170,14 +161,13 @@ EOF
 
     /**
      * @param InputInterface $input
-     * @param OutputInterface $output
      */
-    private function loadDotEnv(InputInterface $input, OutputInterface $output)
+    private function loadDotEnv(InputInterface $input)
     {
         if ($input->getOption('init')) {
             $this->initializeDotEnv();
             $this->io->success(sprintf('Initial .env file created in %s', $this->workingDirectory));
-            exit;
+            die(0);
         }
 
         (new Dotenv($this->workingDirectory))->load();
@@ -211,54 +201,6 @@ DRAFT
         return $this->workingDirectory . '/.env';
     }
 
-    /**
-     * @return string
-     */
-    private function getMetaFilepath()
-    {
-        return $this->workingDirectory . '/.provision';
-    }
-
-
-
-    private function loadOrCreateMetaFile()
-    {
-        $metaFilepath = $this->getMetaFilepath();
-
-        if ($this->filesystem->exists($metaFilepath)) {
-            $this->processedFiles = file($metaFilepath);
-            $this->processedFiles = array_map(function ($filename) {
-                return trim($filename);
-            }, $this->processedFiles);
-        } else {
-            $this->filesystem->touch($metaFilepath);
-        }
-    }
-
-
-
-    private function processDbDeploys()
-    {
-        $this->io->newLine();
-        $files = $this->filesystemWalker->getSqlFilesList($this->workingDirectory);
-        $this->io->newLine();
-        $this->io->section('Dbdeploys processing');
-        $this->io->writeln(sprintf('<info>%d</info> files found', $files->count()));
-
-        $data = $this->preCheckSqlFiles($files);
-
-        $this->io->table(
-            ['FILENAME', 'STATUS'],
-            $data
-        );
-        $this->io->newLine(3);
-        $totalFiles = count($this->queuedSqlFiles);
-
-        foreach ($this->queuedSqlFiles as $index => $file) {
-            $this->processFile($file, $index, $totalFiles);
-        }
-    }
-
     private function checkAndSetConnectionParameters()
     {
         $hasAllKeys = count(
@@ -281,19 +223,83 @@ DRAFT
         $this->io->success(sprintf('Connection with `%s` established', $_ENV['DATABASE_NAME']));
     }
 
+    private function loadOrCreateMetaFile()
+    {
+        $metaFilepath = $this->getMetaFilepath();
 
+        if ($this->filesystem->exists($metaFilepath)) {
+            $this->processedFiles = file($metaFilepath);
+            $this->processedFiles = array_map(function ($filename) {
+                return trim($filename);
+            }, $this->processedFiles);
+        } else {
+            $this->filesystem->touch($metaFilepath);
+        }
+    }
 
     /**
-     * @param $file
-     * @param $index
-     * @param $totalFiles
+     * @return string
      */
-    private function processFile($file, $index, $totalFiles)
+    private function getMetaFilepath()
     {
-        list($content) = explode('--//@UNDO', $file->getContents());
+        return $this->workingDirectory . '/.provision';
+    }
+
+    private function processDbDeploys()
+    {
+        $this->io->newLine();
+        $files = $this->filesystemWalker->getSqlFilesList($this->workingDirectory);
+        $this->io->newLine();
+        $this->io->section('Dbdeploys processing');
+        $this->io->writeln(sprintf('<info>%d</info> files found', $files->count()));
+
+        $this->analyseAndQueue($files);
+        $totalFiles = count($this->queuedSqlFiles);
+
+        if ($totalFiles === 0) {
+            throw new RuntimeException('No SQL files to process');
+        }
+
+        $this->io->table(
+            self::TABLE_HEADERS,
+            $this->filesTable
+        );
+        $this->io->newLine(3);
+
+        foreach ($this->queuedSqlFiles as $index => $file) {
+            $this->processFile($file, $index, $totalFiles);
+        }
+    }
+
+    /**
+     * @param Finder $files
+     * @return array
+     */
+    protected function analyseAndQueue(Finder $files)
+    {
+        $this->filesTable = [];
+        foreach ($files as $file) {
+            $currentSqlFile = $file->getFilename();
+            if (!in_array($currentSqlFile, $this->processedFiles)) {
+                array_push($this->filesTable, [$currentSqlFile, '<comment>QUEUED</comment>']);
+                array_push($this->queuedSqlFiles, $file);
+            } else {
+                array_push($this->filesTable, [$currentSqlFile, 'IGNORED']);
+            }
+        }
+    }
+
+    /**
+     * @param SplFileInfo $file
+     * @param int $index
+     * @param int $totalFiles
+     */
+    private function processFile(SplFileInfo $file, $index, $totalFiles)
+    {
+        list($content) = explode(self::DELIMITER_STRING, $file->getContents());
 
         $this->io->warning(sprintf('PROCESSING [%d/%d] %s', $index + 1, $totalFiles, $file->getFilename()));
         $this->io->text($this->sqlFormatter->format($content));
-        $this->io->choice('What action to perform', array('DEPLOY', 'SKIP', 'QUIT'));
+        $this->io->choice('What action to perform', ['DEPLOY', 'SKIP', 'QUIT']);
     }
 }

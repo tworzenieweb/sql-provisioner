@@ -17,6 +17,6 @@ class Walk
      */
     public function getSqlFilesList($path)
     {
-        return Finder::create()->files()->name('*.sql')->sortByName()->in($path);
+        return Finder::create()->depth(1)->files()->name('*.sql')->sortByName()->in($path);
     }
 }

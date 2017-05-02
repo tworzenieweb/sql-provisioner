@@ -11,10 +11,20 @@ use PDO;
 class Connection
 {
     const DSN = 'mysql:host=%s;port=%d;dbname=%s';
+
+    /** @var string */
     private $host;
+
+    /** @var string */
     private $port;
+
+    /** @var string */
     private $user;
+
+    /** @var string */
     private $password;
+
+    /** @var string */
     private $databaseName;
 
     /** @var PDO */

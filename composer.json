@@ -10,5 +10,8 @@
     },
     "autoload": {
         "psr-4": {"Tworzenieweb\\SqlProvisioner\\": "src/"}
+    },
+    "require-dev": {
+        "phpspec/phpspec": "^3.3"
     }
 }
