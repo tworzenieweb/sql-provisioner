@@ -3,7 +3,6 @@
 namespace Tworzenieweb\SqlProvisioner\Command;
 
 use Dotenv\Dotenv;
-use RuntimeException;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -11,11 +10,16 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Filesystem\Filesystem;
-use Symfony\Component\Finder\Finder;
-use Symfony\Component\Finder\SplFileInfo;
 use Tworzenieweb\SqlProvisioner\Database\Connection;
-use Tworzenieweb\SqlProvisioner\Filesystem\Walk;
+use Tworzenieweb\SqlProvisioner\Database\Exception as DatabaseException;
+use Tworzenieweb\SqlProvisioner\Database\Executor;
+use Tworzenieweb\SqlProvisioner\Database\HasDbDeployCheck;
+use Tworzenieweb\SqlProvisioner\Filesystem\CandidatesFinder;
+use Tworzenieweb\SqlProvisioner\Filesystem\Exception;
 use Tworzenieweb\SqlProvisioner\Formatter\Sql;
+use Tworzenieweb\SqlProvisioner\Model\Candidate;
+use Tworzenieweb\SqlProvisioner\Model\CandidateBuilder;
+use Tworzenieweb\SqlProvisioner\Processor\CandidateProcessor;
 
 /**
  * @author Luke Adamczewski
@@ -23,69 +27,7 @@ use Tworzenieweb\SqlProvisioner\Formatter\Sql;
  */
 class ProvisionCommand extends Command
 {
-    const MANDATORY_ENV_VARIABLES = [
-        'DATABASE_USER',
-        'DATABASE_PASSWORD',
-        'DATABASE_NAME',
-        'DATABASE_PORT',
-        'DATABASE_HOST',
-    ];
-    const TABLE_HEADERS = ['FILENAME', 'STATUS'];
-    const DELIMITER_STRING = '--//@UNDO';
-
-    /** @var array */
-    private $filesTable;
-    /** @var Sql */
-    private $sqlFormatter;
-
-    /** @var Filesystem */
-    private $filesystem;
-
-    /** @var string */
-    private $workingDirectory;
-
-    /** @var Walk */
-    private $filesystemWalker;
-
-    /** @var string[] */
-    private $processedFiles;
-
-    /** @var SymfonyStyle */
-    private $io;
-
-    /** @var SplFileInfo[] */
-    private $queuedSqlFiles;
-
-    /** @var Connection */
-    private $connection;
-
-
-
-    /**
-     * @param null|string $name
-     * @param Connection $connection
-     * @param Sql $sqlFormatter
-     * @param Walk $filesystemWalker
-     */
-    public function __construct($name, Connection $connection, Sql $sqlFormatter, Walk $filesystemWalker)
-    {
-        $this->connection = $connection;
-        $this->sqlFormatter = $sqlFormatter;
-        $this->filesystem = new Filesystem();
-        $this->filesystemWalker = $filesystemWalker;
-        $this->processedFiles = [];
-        $this->queuedSqlFiles = [];
-
-        parent::__construct($name);
-    }
-
-
-
-    protected function configure()
-    {
-        $this
-        ->setDescription('Execute the content of *.sql files from given')
-        ->setHelp(<<<'EOF'
+    const HELP_MESSAGE = <<<'EOF'
 The <info>%command.name% [path-to-folder]</info> command will scan the content of [path-to-folder] directory.
  
 The script will look for <info>.env</info> file containing connection information in format:
@@ -97,18 +39,115 @@ DATABASE_PORT=[port]
 DATABASE_NAME=[database]
 </comment>
 
-If you want to create initial .env use --init or -i option
+If you want to create initial .env use <info>--init</info>
 
 <info>%command.name% --init [path-to-folder]</info>
 
-The next step is searching for sql files and trying to queue them in alphabetical order.
-
+The next step is searching for sql files and trying to queue them in numerical order.
 Before the insert, it will print the formatted output of a file and result of internal syntax check.
 Then you can either skip or execute each.
-After it is successfully executed it will store it in <info>.provision</info> metafile in [path-to-folder] directory. Next time this file will not be used for processing.
-EOF
-        );
+
+If you would like to skip already provisioned candidates use <info>--skip-provisioned</info>
+EOF;
+
+    const MANDATORY_ENV_VARIABLES = [
+        'DATABASE_USER',
+        'DATABASE_PASSWORD',
+        'DATABASE_NAME',
+        'DATABASE_PORT',
+        'DATABASE_HOST',
+    ];
+    const TABLE_HEADERS = ['FILENAME', 'STATUS'];
+
+    /** @var Candidate[] */
+    private $workingDirectoryCandidates;
+
+    /** @var Sql */
+    private $sqlFormatter;
+
+    /** @var Filesystem */
+    private $filesystem;
+
+    /** @var string */
+    private $workingDirectory;
+
+    /** @var CandidatesFinder */
+    private $finder;
+
+    /** @var SymfonyStyle */
+    private $io;
+
+    /** @var Connection */
+    private $connection;
+
+    /** @var CandidateProcessor */
+    private $processor;
+
+    /** @var Executor */
+    private $executor;
+
+    /** @var boolean */
+    private $skipProvisionedCandidates;
+
+    /** @var CandidateBuilder */
+    private $builder;
+
+    /** @var bool */
+    private $hasQueuedCandidates;
+
+    /** @var bool */
+    private $queuedCandidatesCount;
+
+
+
+    /**
+     * @param string $name
+     * @param Connection $connection
+     * @param Sql $sqlFormatter
+     * @param CandidatesFinder $finder
+     * @param CandidateProcessor $processor
+     * @param CandidateBuilder $builder
+     * @param Executor $executor
+     */
+    public function __construct(
+        $name,
+        Connection $connection,
+        Sql $sqlFormatter,
+        CandidatesFinder $finder,
+        CandidateProcessor $processor,
+        CandidateBuilder $builder,
+        Executor $executor
+    ) {
+        $this->connection = $connection;
+        $this->sqlFormatter = $sqlFormatter;
+        $this->filesystem = new Filesystem();
+        $this->finder = $finder;
+        $this->processor = $processor;
+        $this->builder = $builder;
+        $this->executor = $executor;
+
+        $this->workingDirectoryCandidates = [];
+        $this->skipProvisionedCandidates = false;
+        $this->hasQueuedCandidates = false;
+        $this->queuedCandidatesCount = 0;
+
+        parent::__construct($name);
+    }
+
+
+
+    protected function configure()
+    {
+        $this
+            ->setDescription('Execute the content of *.sql files from given')
+            ->setHelp(self::HELP_MESSAGE);
         $this->addOption('init', null, InputOption::VALUE_NONE, 'Initialize .env in given directory');
+        $this->addOption(
+            'skip-provisioned',
+            null,
+            InputOption::VALUE_NONE,
+            'Skip provisioned candidates from printing'
+        );
         $this->addArgument('path', InputArgument::REQUIRED, 'Path to dbdeploys folder');
     }
 
@@ -123,13 +162,22 @@ EOF
     {
         $this->start($input, $output);
         $this->io->section('Working directory processing');
+
+        if ($input->getOption('skip-provisioned')) {
+            $this->skipProvisionedCandidates = true;
+            $this->io->warning('Hiding of provisioned candidates ENABLED');
+        }
+
         $path = $input->getArgument('path');
         $this->workingDirectory = $this->buildAbsolutePath($path);
 
         $this->loadDotEnv($input);
-        $this->loadOrCreateMetaFile();
-        $this->processDbDeploys();
+        $this->processWorkingDirectory();
+
+        return 0;
     }
+
+
 
     /**
      * @param InputInterface $input
@@ -141,6 +189,39 @@ EOF
         $this->io->title('SQL Provisioner');
         $this->io->block(sprintf('Provisioning started at %s', date('Y-m-d H:i:s')));
     }
+
+
+
+    protected function fetchCandidates()
+    {
+        $index = 1;
+        foreach ($this->finder->find($this->workingDirectory) as $candidateFile) {
+            $candidate = $this->builder->build($candidateFile);
+            array_push($this->workingDirectoryCandidates, $candidate);
+
+            if ($this->processor->isValid($candidate)) {
+                $candidate->markAsQueued();
+                $candidate->setIndex($index++);
+                $this->hasQueuedCandidates = true;
+                $this->queuedCandidatesCount++;
+            } else {
+                $candidate->markAsIgnored($this->processor->getLastError());
+            }
+        }
+
+        $this->io->text(sprintf('<info>%d</info> files found', count($this->workingDirectoryCandidates)));
+
+        if (count($this->workingDirectoryCandidates) === 0) {
+            throw Exception::noFilesInDirectory($this->workingDirectory);
+        }
+
+        if (false === $this->hasQueuedCandidates) {
+            $this->io->block('All candidates scripts were executed already.');
+            $this->finish();
+        }
+    }
+
+
 
     /**
      * @param $path
@@ -181,14 +262,16 @@ EOF
     private function initializeDotEnv()
     {
         $initialDotEnvFilepath = $this->getDotEnvFilepath();
-        $this->filesystem->dumpFile($initialDotEnvFilepath, <<<DRAFT
+        $this->filesystem->dumpFile(
+            $initialDotEnvFilepath,
+            <<<DRAFT
 DATABASE_USER=[user]
 DATABASE_PASSWORD=[password]
 DATABASE_HOST=[host]
 DATABASE_PORT=[port]
 DATABASE_NAME=[database]
 DRAFT
-);
+        );
     }
 
 
@@ -200,6 +283,8 @@ DRAFT
     {
         return $this->workingDirectory . '/.env';
     }
+
+
 
     private function checkAndSetConnectionParameters()
     {
@@ -218,88 +303,131 @@ DRAFT
         $this->connection->setHost($_ENV['DATABASE_HOST']);
         $this->connection->setUser($_ENV['DATABASE_USER']);
         $this->connection->setPassword($_ENV['DATABASE_PASSWORD']);
-        $this->connection->getConnection();
+        $this->connection->getCurrentConnection();
 
         $this->io->success(sprintf('Connection with `%s` established', $_ENV['DATABASE_NAME']));
     }
 
-    private function loadOrCreateMetaFile()
-    {
-        $metaFilepath = $this->getMetaFilepath();
 
-        if ($this->filesystem->exists($metaFilepath)) {
-            $this->processedFiles = file($metaFilepath);
-            $this->processedFiles = array_map(function ($filename) {
-                return trim($filename);
-            }, $this->processedFiles);
-        } else {
-            $this->filesystem->touch($metaFilepath);
-        }
+
+    private function processWorkingDirectory()
+    {
+        $this->io->newLine(2);
+        $this->io->section('Candidates processing');
+
+        $this->fetchCandidates();
+        $this->printAllCandidates();
+        $this->processQueuedCandidates();
     }
+
+
 
     /**
-     * @return string
+     * @param Candidate $candidate
      */
-    private function getMetaFilepath()
+    private function executeCandidateScript(Candidate $candidate)
     {
-        return $this->workingDirectory . '/.provision';
+        $this->io->warning(
+            sprintf(
+                'PROCESSING [%d/%d] %s',
+                $candidate->getIndex(),
+                $this->queuedCandidatesCount,
+                $candidate->getName()
+            )
+        );
+        $this->io->text($this->sqlFormatter->format($candidate->getContent()));
+        $action = $this->io->choice('What action to perform', ['DEPLOY', 'SKIP', 'QUIT']);
+
+        switch ($action) {
+            case 'DEPLOY':
+                $this->deployCandidate($candidate);
+                break;
+            case 'QUIT':
+                $this->finish();
+                break;
+        }
     }
 
-    private function processDbDeploys()
+
+
+    private function printAllCandidates()
     {
-        $this->io->newLine();
-        $files = $this->filesystemWalker->getSqlFilesList($this->workingDirectory);
-        $this->io->newLine();
-        $this->io->section('Dbdeploys processing');
-        $this->io->writeln(sprintf('<info>%d</info> files found', $files->count()));
+        $self = $this;
+        $rows = array_map(
+            function (Candidate $candidate) use ($self) {
+                $status = $candidate->getStatus();
 
-        $this->analyseAndQueue($files);
-        $totalFiles = count($this->queuedSqlFiles);
+                switch ($status) {
+                    case Candidate::STATUS_QUEUED:
+                        $status = sprintf('<comment>%s</comment>', $status);
+                        break;
+                    case HasDbDeployCheck::ERROR_STATUS:
+                        if ($self->skipProvisionedCandidates) {
+                            return null;
+                        }
+                }
 
-        if ($totalFiles === 0) {
-            throw new RuntimeException('No SQL files to process');
-        }
+                return [$candidate->getName(), $status];
+            },
+            $this->workingDirectoryCandidates
+        );
 
         $this->io->table(
             self::TABLE_HEADERS,
-            $this->filesTable
+            array_filter($rows)
         );
         $this->io->newLine(3);
-
-        foreach ($this->queuedSqlFiles as $index => $file) {
-            $this->processFile($file, $index, $totalFiles);
-        }
     }
 
-    /**
-     * @param Finder $files
-     * @return array
-     */
-    protected function analyseAndQueue(Finder $files)
+
+
+    private function processQueuedCandidates()
     {
-        $this->filesTable = [];
-        foreach ($files as $file) {
-            $currentSqlFile = $file->getFilename();
-            if (!in_array($currentSqlFile, $this->processedFiles)) {
-                array_push($this->filesTable, [$currentSqlFile, '<comment>QUEUED</comment>']);
-                array_push($this->queuedSqlFiles, $file);
-            } else {
-                array_push($this->filesTable, [$currentSqlFile, 'IGNORED']);
+        while ($this->workingDirectoryCandidates) {
+            $candidate = array_shift($this->workingDirectoryCandidates);
+
+            if ($candidate->isQueued()) {
+                $this->executeCandidateScript($candidate);
             }
         }
+        $this->io->writeln('<info>All candidates scripts were executed</info>');
     }
 
-    /**
-     * @param SplFileInfo $file
-     * @param int $index
-     * @param int $totalFiles
-     */
-    private function processFile(SplFileInfo $file, $index, $totalFiles)
-    {
-        list($content) = explode(self::DELIMITER_STRING, $file->getContents());
 
-        $this->io->warning(sprintf('PROCESSING [%d/%d] %s', $index + 1, $totalFiles, $file->getFilename()));
-        $this->io->text($this->sqlFormatter->format($content));
-        $this->io->choice('What action to perform', ['DEPLOY', 'SKIP', 'QUIT']);
+
+    /**
+     * @param Candidate $candidate
+     */
+    private function deployCandidate(Candidate $candidate)
+    {
+        try {
+            $this->executor->execute($candidate);
+        } catch (DatabaseException $databaseException) {
+            $this->io->error($databaseException->getMessage());
+            $this->io->writeln(
+                sprintf(
+                    "<bg=yellow>%s\n\r%s</>",
+                    $databaseException->getPrevious()->getMessage(),
+                    $candidate->getContent()
+                )
+            );
+            $this->terminate();
+        }
+    }
+
+
+
+    private function finish()
+    {
+        $this->io->text(sprintf('Provisioning ended at %s', date('Y-m-d H:i:s')));
+        die(0);
+    }
+
+
+
+    private function terminate()
+    {
+        $this->io->text(sprintf('Provisioning ended with error at %s', date('Y-m-d H:i:s')));
+        die(1);
     }
 }

@@ -3,6 +3,7 @@
 namespace Tworzenieweb\SqlProvisioner\Database;
 
 use PDO;
+use Tworzenieweb\SqlProvisioner\Model\Candidate;
 
 /**
  * @author Luke Adamczewski
@@ -13,9 +14,6 @@ class Executor
     /** @var PDO */
     private $connection;
 
-    /** @var Check[] */
-    private $checks;
-
 
 
     /**
@@ -24,49 +22,25 @@ class Executor
     public function __construct(Connection $connection)
     {
         $this->connection = $connection;
-        $this->checks = [];
     }
 
 
 
     /**
-     * @param Check $check
+     * @param Candidate $candidate
+     * @throws Exception
      */
-    public function addCheck(Check $check)
+    public function execute(Candidate $candidate)
     {
-        array_push($this->checks, $check);
-    }
+        $connection = $this->getConnection();
 
-
-
-    /**
-     * @param $name
-     * @param $content
-     */
-    public function execute($name, $content)
-    {
-        if(false === $this->performQuerySkipChecks($name)) {
-            $statement = $this->getConnection()->prepare($content);
+        try {
+            $statement = $connection->prepare($candidate->getContent());
             $statement->execute();
+        } catch (\PDOException $dberror) {
+            $exception = Exception::candidateScriptError($candidate, $dberror);
+            throw $exception;
         }
-    }
-
-
-
-    /**
-     * @param $name
-     * @return bool
-     */
-    private function performQuerySkipChecks($name)
-    {
-        foreach ($this->checks as $check) {
-            $check->setDeployScriptName($name);
-            if ($check->execute($this->getConnection())) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
 
@@ -76,6 +50,6 @@ class Executor
      */
     private function getConnection()
     {
-        return $this->connection->getConnection();
+        return $this->connection->getCurrentConnection();
     }
 }

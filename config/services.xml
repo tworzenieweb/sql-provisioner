@@ -3,6 +3,10 @@
            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
            xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
     <services>
+        <service id="builder.candidate" class="Tworzenieweb\SqlProvisioner\Model\CandidateBuilder" />
+        <service id="processor.candidate" class="Tworzenieweb\SqlProvisioner\Processor\CandidateProcessor">
+            <argument type="service" id="database.connection" />
+        </service>
         <service id="check.has_db_deploy" class="Tworzenieweb\SqlProvisioner\Database\HasDbDeployCheck">
             <tag name="provision.check" />
         </service>
@@ -11,12 +15,15 @@
             <argument type="service" id="database.connection" />
         </service>
         <service id="formatter.sql" class="Tworzenieweb\SqlProvisioner\Formatter\Sql" />
-        <service id="filesystem.walk" class="Tworzenieweb\SqlProvisioner\Filesystem\Walk" />
+        <service id="filesystem.candidates_finder" class="Tworzenieweb\SqlProvisioner\Filesystem\CandidatesFinder" />
         <service id="command.provision" class="Tworzenieweb\SqlProvisioner\Command\ProvisionCommand">
             <argument type="string">provision</argument>
             <argument type="service" id="database.connection" />
             <argument type="service" id="formatter.sql" />
-            <argument type="service" id="filesystem.walk" />
+            <argument type="service" id="filesystem.candidates_finder" />
+            <argument type="service" id="processor.candidate" />
+            <argument type="service" id="builder.candidate" />
+            <argument type="service" id="database.executor" />
             <tag name="console.command" />
         </service>
     </services>

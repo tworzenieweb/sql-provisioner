@@ -3,7 +3,7 @@
 namespace Tworzenieweb\SqlProvisioner\Database;
 
 use PDO;
-use RuntimeException;
+use Tworzenieweb\SqlProvisioner\Model\Candidate;
 
 /**
  * @author Luke Adamczewski
@@ -14,37 +14,33 @@ class HasDbDeployCheck implements Check
     const SQL = <<<SQL
 SELECT `id`
 FROM `changelog_database_deployments`
-WHERE `deploy_script_name` = ?
+WHERE `deploy_script_number` = ?
 SQL;
-
-    /** @var string */
-    private $deployScriptName;
+    const ERROR_STATUS = 'ALREADY_DEPLOYED';
 
 
 
     /**
-     * @param string $deployScriptName
+     * @param Candidate $candidate
+     * @param PDO $connection
+     * @return bool
      */
-    public function setDeployScriptName($deployScriptName)
+    public function execute(Candidate $candidate, PDO $connection)
     {
-        $this->deployScriptName = $deployScriptName;
+
+        $statement = $connection->prepare(self::SQL);
+        $statement->execute([$candidate->getNumber()]);
+
+        return (boolean) $statement->fetchColumn();
     }
 
 
 
     /**
-     * @param PDO $connection
-     * @return bool
+     * @return string
      */
-    public function execute(PDO $connection)
+    public function getErrorCode()
     {
-        if (null === $this->deployScriptName) {
-            throw new RuntimeException('Deploy script name needs to be provided');
-        }
-        $statement = $connection->prepare(self::SQL);
-        $statement->execute([$this->deployScriptName]);
-        $this->deployScriptName = null;
-
-        return (boolean) $statement->fetchColumn();
+        return self::ERROR_STATUS;
     }
 }

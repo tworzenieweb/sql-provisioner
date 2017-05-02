@@ -8,15 +8,19 @@ use Symfony\Component\Finder\Finder;
  * @author Luke Adamczewski
  * @package Tworzenieweb\SqlProvisioner\Filesystem
  */
-class Walk
+class CandidatesFinder
 {
 
     /**
-     * @param $path
+     * @param string $path
      * @return Finder
      */
-    public function getSqlFilesList($path)
+    public function find($path)
     {
-        return Finder::create()->depth(1)->files()->name('*.sql')->sortByName()->in($path);
+        return Finder::create()
+            ->files()
+            ->name('*.sql')
+            ->sortByName()
+            ->in($path);
     }
 }

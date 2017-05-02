@@ -62,7 +62,7 @@ class Application extends \Symfony\Component\Console\Application
     private function registerChecks()
     {
         foreach ($this->container->findTaggedServiceIds('provision.check') as $serviceId => $command) {
-            $this->container->get('database.executor')->addCheck($this->container->get($serviceId));
+            $this->container->get('processor.candidate')->addCheck($this->container->get($serviceId));
         }
     }
 

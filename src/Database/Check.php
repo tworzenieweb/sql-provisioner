@@ -3,6 +3,7 @@
 namespace Tworzenieweb\SqlProvisioner\Database;
 
 use PDO;
+use Tworzenieweb\SqlProvisioner\Model\Candidate;
 
 /**
  * @author Luke Adamczewski
@@ -11,15 +12,16 @@ use PDO;
 interface Check
 {
     /**
+     * @param Candidate $candidate
      * @param PDO $connection
      * @return bool True / False based on the fact if check is met or not
      */
-    public function execute(PDO $connection);
+    public function execute(Candidate $candidate, PDO $connection);
 
 
 
     /**
-     * @param string $deployScriptName
+     * @return string
      */
-    public function setDeployScriptName($deployScriptName);
+    public function getErrorCode();
 }
