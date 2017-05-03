@@ -10,10 +10,11 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Filesystem\Filesystem;
+use Tworzenieweb\SqlProvisioner\Check\HasSyntaxCorrectCheck;
 use Tworzenieweb\SqlProvisioner\Database\Connection;
 use Tworzenieweb\SqlProvisioner\Database\Exception as DatabaseException;
 use Tworzenieweb\SqlProvisioner\Database\Executor;
-use Tworzenieweb\SqlProvisioner\Database\HasDbDeployCheck;
+use Tworzenieweb\SqlProvisioner\Check\HasDbDeployCheck;
 use Tworzenieweb\SqlProvisioner\Filesystem\CandidatesFinder;
 use Tworzenieweb\SqlProvisioner\Filesystem\Exception;
 use Tworzenieweb\SqlProvisioner\Formatter\Sql;
@@ -37,6 +38,8 @@ DATABASE_PASSWORD=[password]
 DATABASE_HOST=[host]
 DATABASE_PORT=[port]
 DATABASE_NAME=[database]
+PROVISIONING_TABLE=changelog_database_deployments
+PROVISIONING_TABLE_CANDIDATE_NUMBER_COLUMN=deploy_script_number
 </comment>
 
 If you want to create initial .env use <info>--init</info>
@@ -44,6 +47,8 @@ If you want to create initial .env use <info>--init</info>
 <info>%command.name% --init [path-to-folder]</info>
 
 The next step is searching for sql files and trying to queue them in numerical order.
+First n-th digits of a filename will be treated as candidate number. 
+This will be used then to check in database if a certain file was already deployed (PROVISIONING_TABLE_CANDIDATE_NUMBER_COLUMN).
 Before the insert, it will print the formatted output of a file and result of internal syntax check.
 Then you can either skip or execute each.
 
@@ -56,6 +61,8 @@ EOF;
         'DATABASE_NAME',
         'DATABASE_PORT',
         'DATABASE_HOST',
+        'PROVISIONING_TABLE',
+        'PROVISIONING_TABLE_CANDIDATE_NUMBER_COLUMN',
     ];
     const TABLE_HEADERS = ['FILENAME', 'STATUS'];
 
@@ -98,6 +105,9 @@ EOF;
     /** @var integer */
     private $queuedCandidatesCount;
 
+    /** @var array */
+    private $errorMessages;
+
 
 
     /**
@@ -130,6 +140,7 @@ EOF;
         $this->skipProvisionedCandidates = false;
         $this->hasQueuedCandidates = false;
         $this->queuedCandidatesCount = 0;
+        $this->errorMessages = [];
 
         parent::__construct($name);
     }
@@ -207,6 +218,10 @@ EOF;
                 $this->queuedCandidatesCount++;
             } else {
                 $candidate->markAsIgnored($this->processor->getLastError());
+                $lastErrorMessage = $this->processor->getLastErrorMessage();
+                if (!empty($lastErrorMessage)) {
+                    array_push($this->errorMessages, $lastErrorMessage);
+                }
             }
         }
 
@@ -214,6 +229,13 @@ EOF;
 
         if (count($this->workingDirectoryCandidates) === 0) {
             throw Exception::noFilesInDirectory($this->workingDirectory);
+        }
+
+        if (!empty($this->errorMessages)) {
+            $this->io->warning(sprintf('Detected %d syntax checking issues', count($this->errorMessages)));
+            $this->printAllCandidates();
+            $this->io->writeln(sprintf('<error>%s</error>', implode("\n", $this->errorMessages)));
+            $this->finish();
         }
 
         if (false === $this->hasQueuedCandidates) {
@@ -271,6 +293,8 @@ DATABASE_PASSWORD=[password]
 DATABASE_HOST=[host]
 DATABASE_PORT=[port]
 DATABASE_NAME=[database]
+PROVISIONING_TABLE=changelog_database_deployments
+PROVISIONING_TABLE_CANDIDATE_NUMBER_COLUMN=deploy_script_number
 DRAFT
         );
     }
@@ -304,6 +328,8 @@ DRAFT
         $this->connection->setHost($_ENV['DATABASE_HOST']);
         $this->connection->setUser($_ENV['DATABASE_USER']);
         $this->connection->setPassword($_ENV['DATABASE_PASSWORD']);
+        $this->connection->setProvisioningTable($_ENV['PROVISIONING_TABLE']);
+        $this->connection->setCriteriaColumn($_ENV['PROVISIONING_TABLE_CANDIDATE_NUMBER_COLUMN']);
         $this->connection->getCurrentConnection();
 
         $this->io->success(sprintf('Connection with `%s` established', $_ENV['DATABASE_NAME']));
@@ -366,6 +392,10 @@ DRAFT
                         if ($self->skipProvisionedCandidates) {
                             return null;
                         }
+                        break;
+                    case HasSyntaxCorrectCheck::ERROR_STATUS:
+                        $status = sprintf('<error>%s</error>', $status);
+                        break;
                 }
 
                 return [$candidate->getName(), $status];

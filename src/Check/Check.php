@@ -1,8 +1,7 @@
 <?php
 
-namespace Tworzenieweb\SqlProvisioner\Database;
+namespace Tworzenieweb\SqlProvisioner\Check;
 
-use PDO;
 use Tworzenieweb\SqlProvisioner\Model\Candidate;
 
 /**
@@ -13,10 +12,9 @@ interface Check
 {
     /**
      * @param Candidate $candidate
-     * @param PDO $connection
      * @return bool True / False based on the fact if check is met or not
      */
-    public function execute(Candidate $candidate, PDO $connection);
+    public function execute(Candidate $candidate);
 
 
 
@@ -24,4 +22,11 @@ interface Check
      * @return string
      */
     public function getErrorCode();
+
+
+
+    /**
+     * @return string
+     */
+    public function getLastErrorMessage();
 }

@@ -30,6 +30,12 @@ class Connection
     /** @var PDO */
     private $currentConnection;
 
+    /** @var string */
+    private $provisioningTable;
+
+    /** @var string */
+    private $criteriaColumn;
+
 
 
     /**
@@ -97,5 +103,45 @@ class Connection
         }
 
         return $this->currentConnection;
+    }
+
+
+
+    /**
+     * @param string $provisioningTable
+     */
+    public function setProvisioningTable($provisioningTable)
+    {
+        $this->provisioningTable = $provisioningTable;
+    }
+
+
+
+    /**
+     * @param string $criteriaColumn
+     */
+    public function setCriteriaColumn($criteriaColumn)
+    {
+        $this->criteriaColumn = $criteriaColumn;
+    }
+
+
+
+    /**
+     * @return string
+     */
+    public function getProvisioningTable()
+    {
+        return $this->provisioningTable;
+    }
+
+
+
+    /**
+     * @return string
+     */
+    public function getCriteriaColumn()
+    {
+        return $this->criteriaColumn;
     }
 }

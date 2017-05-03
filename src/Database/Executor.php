@@ -3,6 +3,7 @@
 namespace Tworzenieweb\SqlProvisioner\Database;
 
 use PDO;
+use PDOException;
 use Tworzenieweb\SqlProvisioner\Model\Candidate;
 
 /**
@@ -37,8 +38,8 @@ class Executor
         try {
             $statement = $connection->prepare($candidate->getContent());
             $statement->execute();
-        } catch (\PDOException $dberror) {
-            $exception = Exception::candidateScriptError($candidate, $dberror);
+        } catch (PDOException $pdoException) {
+            $exception = Exception::candidateScriptError($candidate, $pdoException);
             throw $exception;
         }
     }

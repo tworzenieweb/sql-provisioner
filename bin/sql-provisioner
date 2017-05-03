@@ -2,7 +2,7 @@
 <?php
 
 const VERSION = '0.0.1';
-require __DIR__ . '/vendor/autoload.php';
+require __DIR__ . '/../vendor/autoload.php';
 
 use Tworzenieweb\SqlProvisioner\Application;
 

@@ -2,8 +2,7 @@
 
 namespace Tworzenieweb\SqlProvisioner\Processor;
 
-use Tworzenieweb\SqlProvisioner\Database\Check;
-use Tworzenieweb\SqlProvisioner\Database\Connection;
+use Tworzenieweb\SqlProvisioner\Check\Check;
 use Tworzenieweb\SqlProvisioner\Model\Candidate;
 
 /**
@@ -18,14 +17,13 @@ class CandidateProcessor
     /** @var string */
     private $lastError;
 
-    /** @var Connection */
-    private $connection;
+    /** @var string */
+    private $lastErrorMessage;
 
 
 
-    public function __construct(Connection $connection)
+    public function __construct()
     {
-        $this->connection = $connection;
         $this->checks = [];
     }
 
@@ -41,13 +39,17 @@ class CandidateProcessor
 
 
 
+    /**
+     * @param Candidate $candidate
+     * @return bool
+     */
     public function isValid(Candidate $candidate)
     {
         $this->lastError = null;
-        $connection = $this->getConnection();
         foreach ($this->checks as $check) {
-            if ($check->execute($candidate, $connection)) {
+            if ($check->execute($candidate)) {
                 $this->lastError = $check->getErrorCode();
+                $this->lastErrorMessage = $check->getLastErrorMessage();
 
                 return false;
             }
@@ -68,8 +70,11 @@ class CandidateProcessor
 
 
 
-    private function getConnection()
+    /**
+     * @return string
+     */
+    public function getLastErrorMessage()
     {
-        return $this->connection->getCurrentConnection();
+        return $this->lastErrorMessage;
     }
 }

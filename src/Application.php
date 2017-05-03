@@ -2,6 +2,7 @@
 
 namespace Tworzenieweb\SqlProvisioner;
 
+use RuntimeException;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -31,6 +32,7 @@ class Application extends \Symfony\Component\Console\Application
     private function boot()
     {
         $this->container = new ContainerBuilder();
+        $this->container->setParameter('sql_provisioner.composer_bin_path', $this->getComposerBinPath());
 
         $loader = new XmlFileLoader($this->container, new FileLocator($this->getConfigPath()));
         $loader->load('services.xml');
@@ -56,6 +58,14 @@ class Application extends \Symfony\Component\Console\Application
         return __DIR__ . '/../config';
     }
 
+    /**
+     * @return string
+     */
+    private function getComposerBinPath()
+    {
+        return __DIR__ . '/../vendor/bin';
+    }
+
 
 
     private function registerChecks()
@@ -72,7 +82,7 @@ class Application extends \Symfony\Component\Console\Application
     protected function getCommandForId($commandId)
     {
         if (!$this->container->has($commandId)) {
-            throw new \RuntimeException(sprintf('There is no command class for id %s', $commandId));
+            throw new RuntimeException(sprintf('There is no command class for id %s', $commandId));
         }
 
         return $this->container->get($commandId);
