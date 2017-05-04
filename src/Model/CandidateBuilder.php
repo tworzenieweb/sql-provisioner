@@ -23,11 +23,9 @@ class CandidateBuilder
         $content = $fileInfo->getContents();
         preg_match(self::DELIMITER_PATTERN, $content, $matches, PREG_OFFSET_CAPTURE);
 
-        if (empty($matches)) {
-            throw new \RuntimeException(sprintf('Provided file %s has no valid delimiter matching regexp %s', $fileInfo->getFilename(), self::DELIMITER_PATTERN));
+        if (!empty($matches)) {
+            $content = substr($content, 0, $matches[0][1] - 1);
         }
-
-        $content = substr($content, 0, $matches[0][1] - 1);
 
         return new Candidate($fileInfo->getFilename(), $content);
     }

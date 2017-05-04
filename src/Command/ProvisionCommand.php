@@ -2,7 +2,6 @@
 
 namespace Tworzenieweb\SqlProvisioner\Command;
 
-use Dotenv\Dotenv;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -10,13 +9,15 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\Finder\SplFileInfo;
+use Tworzenieweb\SqlProvisioner\Check\HasDbDeployCheck;
 use Tworzenieweb\SqlProvisioner\Check\HasSyntaxCorrectCheck;
 use Tworzenieweb\SqlProvisioner\Database\Connection;
 use Tworzenieweb\SqlProvisioner\Database\Exception as DatabaseException;
 use Tworzenieweb\SqlProvisioner\Database\Executor;
-use Tworzenieweb\SqlProvisioner\Check\HasDbDeployCheck;
 use Tworzenieweb\SqlProvisioner\Filesystem\CandidatesFinder;
 use Tworzenieweb\SqlProvisioner\Filesystem\Exception;
+use Tworzenieweb\SqlProvisioner\Filesystem\WorkingDirectory;
 use Tworzenieweb\SqlProvisioner\Formatter\Sql;
 use Tworzenieweb\SqlProvisioner\Model\Candidate;
 use Tworzenieweb\SqlProvisioner\Model\CandidateBuilder;
@@ -54,17 +55,8 @@ Then you can either skip or execute each.
 
 If you would like to skip already provisioned candidates use <info>--skip-provisioned</info>
 EOF;
-
-    const MANDATORY_ENV_VARIABLES = [
-        'DATABASE_USER',
-        'DATABASE_PASSWORD',
-        'DATABASE_NAME',
-        'DATABASE_PORT',
-        'DATABASE_HOST',
-        'PROVISIONING_TABLE',
-        'PROVISIONING_TABLE_CANDIDATE_NUMBER_COLUMN',
-    ];
     const TABLE_HEADERS = ['FILENAME', 'STATUS'];
+    private $candidateIndexValue = 1;
 
     /** @var Candidate[] */
     private $workingDirectoryCandidates;
@@ -112,26 +104,26 @@ EOF;
 
     /**
      * @param string $name
+     * @param WorkingDirectory $workingDirectory
      * @param Connection $connection
      * @param Sql $sqlFormatter
-     * @param CandidatesFinder $finder
      * @param CandidateProcessor $processor
      * @param CandidateBuilder $builder
      * @param Executor $executor
      */
     public function __construct(
         $name,
+        WorkingDirectory $workingDirectory,
         Connection $connection,
         Sql $sqlFormatter,
-        CandidatesFinder $finder,
         CandidateProcessor $processor,
         CandidateBuilder $builder,
         Executor $executor
     ) {
+        $this->workingDirectory = $workingDirectory;
         $this->connection = $connection;
         $this->sqlFormatter = $sqlFormatter;
         $this->filesystem = new Filesystem();
-        $this->finder = $finder;
         $this->processor = $processor;
         $this->builder = $builder;
         $this->executor = $executor;
@@ -179,11 +171,8 @@ EOF;
             $this->io->warning('Hiding of provisioned candidates ENABLED');
         }
 
-        $path = $input->getArgument('path');
-        $this->workingDirectory = $this->buildAbsolutePath($path);
-
-        $this->loadDotEnv($input);
-        $this->processWorkingDirectory();
+        $this->processWorkingDirectory($input);
+        $this->processCandidates();
         $this->finish();
 
         return 0;
@@ -206,36 +195,10 @@ EOF;
 
     protected function fetchCandidates()
     {
-        $index = 1;
-        foreach ($this->finder->find($this->workingDirectory) as $candidateFile) {
-            $candidate = $this->builder->build($candidateFile);
-            array_push($this->workingDirectoryCandidates, $candidate);
-
-            if ($this->processor->isValid($candidate)) {
-                $candidate->markAsQueued();
-                $candidate->setIndex($index++);
-                $this->hasQueuedCandidates = true;
-                $this->queuedCandidatesCount++;
-            } else {
-                $candidate->markAsIgnored($this->processor->getLastError());
-                $lastErrorMessage = $this->processor->getLastErrorMessage();
-                if (!empty($lastErrorMessage)) {
-                    array_push($this->errorMessages, $lastErrorMessage);
-                }
-            }
-        }
-
-        $this->io->text(sprintf('<info>%d</info> files found', count($this->workingDirectoryCandidates)));
-
-        if (count($this->workingDirectoryCandidates) === 0) {
-            throw Exception::noFilesInDirectory($this->workingDirectory);
-        }
+        $this->iterateOverWorkingDirectory();
 
         if (!empty($this->errorMessages)) {
-            $this->io->warning(sprintf('Detected %d syntax checking issues', count($this->errorMessages)));
-            $this->printAllCandidates();
-            $this->io->writeln(sprintf('<error>%s</error>', implode("\n", $this->errorMessages)));
-            $this->finish();
+            $this->showSyntaxErrors();
         }
 
         if (false === $this->hasQueuedCandidates) {
@@ -247,18 +210,63 @@ EOF;
 
 
     /**
-     * @param $path
-     * @return string
+     * @param SplFileInfo $candidateFile
      */
-    private function buildAbsolutePath($path)
+    protected function processCandidateFile($candidateFile)
     {
-        $absolutePath = $path;
+        $candidate = $this->builder->build($candidateFile);
+        array_push($this->workingDirectoryCandidates, $candidate);
 
-        if (!$this->filesystem->isAbsolutePath($path)) {
-            $absolutePath = realpath($path);
+        if ($this->processor->isValid($candidate)) {
+            $candidate->markAsQueued();
+            $candidate->setIndex($this->candidateIndexValue++);
+            $this->hasQueuedCandidates = true;
+            $this->queuedCandidatesCount++;
+        } else {
+            $candidate->markAsIgnored($this->processor->getLastError());
+            $lastErrorMessage = $this->processor->getLastErrorMessage();
+
+            if (!empty($lastErrorMessage)) {
+                array_push($this->errorMessages, $lastErrorMessage);
+            }
+        }
+    }
+
+
+
+    protected function iterateOverWorkingDirectory()
+    {
+        foreach ($this->workingDirectory->getCandidates() as $candidateFile) {
+            $this->processCandidateFile($candidateFile);
         }
 
-        return $absolutePath;
+        $this->io->text(sprintf('<info>%d</info> files found', count($this->workingDirectoryCandidates)));
+
+        if (count($this->workingDirectoryCandidates) === 0) {
+            throw Exception::noFilesInDirectory($this->workingDirectory);
+        }
+    }
+
+
+
+    protected function showSyntaxErrors()
+    {
+        $this->io->warning(sprintf('Detected %d syntax checking issues', count($this->errorMessages)));
+        $this->printAllCandidates();
+        $this->io->writeln(sprintf('<error>%s</error>', implode("\n", $this->errorMessages)));
+        $this->finish();
+    }
+
+
+
+    /**
+     * @param InputInterface $input
+     */
+    protected function processWorkingDirectory(InputInterface $input)
+    {
+        $this->workingDirectory = $this->workingDirectory->cd($input->getArgument('path'));
+        $this->loadDotEnv($input);
+        $this->io->success('DONE');
     }
 
 
@@ -269,79 +277,36 @@ EOF;
     private function loadDotEnv(InputInterface $input)
     {
         if ($input->getOption('init')) {
-            $this->initializeDotEnv();
+            $this->workingDirectory->touchDotEnv();
             $this->io->success(sprintf('Initial .env file created in %s', $this->workingDirectory));
             die(0);
         }
 
-        (new Dotenv($this->workingDirectory))->load();
-        $this->io->success(sprintf('%s file parsed', $this->getDotEnvFilepath()));
-
-        $this->checkAndSetConnectionParameters();
+        $this->workingDirectory->loadDotEnv();
     }
 
 
 
-    private function initializeDotEnv()
+    private function setConnectionParameters()
     {
-        $initialDotEnvFilepath = $this->getDotEnvFilepath();
-        $this->filesystem->dumpFile(
-            $initialDotEnvFilepath,
-            <<<DRAFT
-DATABASE_USER=[user]
-DATABASE_PASSWORD=[password]
-DATABASE_HOST=[host]
-DATABASE_PORT=[port]
-DATABASE_NAME=[database]
-PROVISIONING_TABLE=changelog_database_deployments
-PROVISIONING_TABLE_CANDIDATE_NUMBER_COLUMN=deploy_script_number
-DRAFT
-        );
-    }
-
-
-
-    /**
-     * @return string
-     */
-    private function getDotEnvFilepath()
-    {
-        return $this->workingDirectory . '/.env';
-    }
-
-
-
-    private function checkAndSetConnectionParameters()
-    {
-        $hasAllKeys = count(
-                array_intersect_key(
-                    array_flip(self::MANDATORY_ENV_VARIABLES),
-                    $_ENV
-                )
-            ) === count(self::MANDATORY_ENV_VARIABLES);
-
-        if (!$hasAllKeys) {
-            throw new \LogicException('Provided .env is missing the mandatory keys');
-        }
-
         $this->connection->setDatabaseName($_ENV['DATABASE_NAME']);
         $this->connection->setHost($_ENV['DATABASE_HOST']);
         $this->connection->setUser($_ENV['DATABASE_USER']);
         $this->connection->setPassword($_ENV['DATABASE_PASSWORD']);
         $this->connection->setProvisioningTable($_ENV['PROVISIONING_TABLE']);
         $this->connection->setCriteriaColumn($_ENV['PROVISIONING_TABLE_CANDIDATE_NUMBER_COLUMN']);
-        $this->connection->getCurrentConnection();
 
         $this->io->success(sprintf('Connection with `%s` established', $_ENV['DATABASE_NAME']));
     }
 
 
 
-    private function processWorkingDirectory()
+    private function processCandidates()
     {
         $this->io->newLine(2);
         $this->io->section('Candidates processing');
 
+        $this->setConnectionParameters();
         $this->fetchCandidates();
         $this->printAllCandidates();
         $this->processQueuedCandidates();

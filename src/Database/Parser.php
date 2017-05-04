@@ -12,6 +12,9 @@ use Tworzenieweb\SqlProvisioner\Model\Candidate;
  */
 class Parser
 {
+    /** @var string */
+    private $composerBinPath;
+
 
 
     /**
@@ -35,6 +38,7 @@ class Parser
 
         $process = new Process($this->getCommandString());
         $process->setInput($input);
+        $process->setTimeout(null);
         $process->start();
 
         $input->close();

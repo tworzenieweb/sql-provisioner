@@ -3,6 +3,10 @@
            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
            xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
     <services>
+        <service id="filesystem.working_directory" class="Tworzenieweb\SqlProvisioner\Filesystem\WorkingDirectory">
+            <argument>%sql_provisioner.composer_bin_path%</argument>
+            <argument type="service" id="filesystem.candidates_finder" />
+        </service>
         <service id="database.parser" class="Tworzenieweb\SqlProvisioner\Database\Parser">
             <argument>%sql_provisioner.composer_bin_path%</argument>
         </service>
@@ -24,9 +28,9 @@
         <service id="filesystem.candidates_finder" class="Tworzenieweb\SqlProvisioner\Filesystem\CandidatesFinder" />
         <service id="command.provision" class="Tworzenieweb\SqlProvisioner\Command\ProvisionCommand">
             <argument type="string">provision</argument>
+            <argument type="service" id="filesystem.working_directory" />
             <argument type="service" id="database.connection" />
             <argument type="service" id="formatter.sql" />
-            <argument type="service" id="filesystem.candidates_finder" />
             <argument type="service" id="processor.candidate" />
             <argument type="service" id="builder.candidate" />
             <argument type="service" id="database.executor" />

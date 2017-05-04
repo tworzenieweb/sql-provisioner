@@ -10,6 +10,9 @@ use Symfony\Component\Finder\Finder;
  */
 class CandidatesFinder
 {
+    const FILES_MASK = '/^\d{3,}\_.*\.sql$/';
+
+
 
     /**
      * @param string $path
@@ -19,7 +22,7 @@ class CandidatesFinder
     {
         return Finder::create()
             ->files()
-            ->name('*.sql')
+            ->name(self::FILES_MASK)
             ->sortByName()
             ->in($path);
     }
