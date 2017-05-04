@@ -8,14 +8,12 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
-use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\SplFileInfo;
 use Tworzenieweb\SqlProvisioner\Check\HasDbDeployCheck;
 use Tworzenieweb\SqlProvisioner\Check\HasSyntaxCorrectCheck;
 use Tworzenieweb\SqlProvisioner\Database\Connection;
 use Tworzenieweb\SqlProvisioner\Database\Exception as DatabaseException;
 use Tworzenieweb\SqlProvisioner\Database\Executor;
-use Tworzenieweb\SqlProvisioner\Filesystem\CandidatesFinder;
 use Tworzenieweb\SqlProvisioner\Filesystem\Exception;
 use Tworzenieweb\SqlProvisioner\Filesystem\WorkingDirectory;
 use Tworzenieweb\SqlProvisioner\Formatter\Sql;
@@ -56,22 +54,18 @@ Then you can either skip or execute each.
 If you would like to skip already provisioned candidates use <info>--skip-provisioned</info>
 EOF;
     const TABLE_HEADERS = ['FILENAME', 'STATUS'];
+
+    /** @var int */
     private $candidateIndexValue = 1;
 
     /** @var Candidate[] */
-    private $workingDirectoryCandidates;
+    private $workingDirectoryCandidates = [];
 
     /** @var Sql */
     private $sqlFormatter;
 
-    /** @var Filesystem */
-    private $filesystem;
-
-    /** @var string */
+    /** @var WorkingDirectory */
     private $workingDirectory;
-
-    /** @var CandidatesFinder */
-    private $finder;
 
     /** @var SymfonyStyle */
     private $io;
@@ -86,19 +80,19 @@ EOF;
     private $executor;
 
     /** @var boolean */
-    private $skipProvisionedCandidates;
+    private $skipProvisionedCandidates = false;
 
     /** @var CandidateBuilder */
     private $builder;
 
     /** @var bool */
-    private $hasQueuedCandidates;
+    private $hasQueuedCandidates = false;
 
     /** @var integer */
-    private $queuedCandidatesCount;
+    private $queuedCandidatesCount = 0;
 
     /** @var array */
-    private $errorMessages;
+    private $errorMessages = [];
 
 
 
@@ -123,16 +117,9 @@ EOF;
         $this->workingDirectory = $workingDirectory;
         $this->connection = $connection;
         $this->sqlFormatter = $sqlFormatter;
-        $this->filesystem = new Filesystem();
         $this->processor = $processor;
         $this->builder = $builder;
         $this->executor = $executor;
-
-        $this->workingDirectoryCandidates = [];
-        $this->skipProvisionedCandidates = false;
-        $this->hasQueuedCandidates = false;
-        $this->queuedCandidatesCount = 0;
-        $this->errorMessages = [];
 
         parent::__construct($name);
     }
@@ -347,23 +334,7 @@ EOF;
         $self = $this;
         $rows = array_map(
             function (Candidate $candidate) use ($self) {
-                $status = $candidate->getStatus();
-
-                switch ($status) {
-                    case Candidate::STATUS_QUEUED:
-                        $status = sprintf('<comment>%s</comment>', $status);
-                        break;
-                    case HasDbDeployCheck::ERROR_STATUS:
-                        if ($self->skipProvisionedCandidates) {
-                            return null;
-                        }
-                        break;
-                    case HasSyntaxCorrectCheck::ERROR_STATUS:
-                        $status = sprintf('<error>%s</error>', $status);
-                        break;
-                }
-
-                return [$candidate->getName(), $status];
+                return $self->buildCandidateRow($candidate);
             },
             $this->workingDirectoryCandidates
         );
@@ -425,5 +396,32 @@ EOF;
     {
         $this->io->text(sprintf('Provisioning ended with error at %s', date('Y-m-d H:i:s')));
         die(1);
+    }
+
+
+
+    /**
+     * @param Candidate $candidate
+     * @return array|null
+     */
+    private function buildCandidateRow(Candidate $candidate)
+    {
+        $status = $candidate->getStatus();
+
+        switch ($status) {
+            case Candidate::STATUS_QUEUED:
+                $status = sprintf('<comment>%s</comment>', $status);
+                break;
+            case HasDbDeployCheck::ERROR_STATUS:
+                if ($this->skipProvisionedCandidates) {
+                    return null;
+                }
+                break;
+            case HasSyntaxCorrectCheck::ERROR_STATUS:
+                $status = sprintf('<error>%s</error>', $status);
+                break;
+        }
+
+        return [$candidate->getName(), $status];
     }
 }
