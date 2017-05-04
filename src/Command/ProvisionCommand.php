@@ -333,7 +333,7 @@ EOF;
     {
         $self = $this;
         $rows = array_map(
-            function (Candidate $candidate) use ($self) {
+            function(Candidate $candidate) use ($self) {
                 return $self->buildCandidateRow($candidate);
             },
             $this->workingDirectoryCandidates
