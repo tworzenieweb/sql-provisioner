@@ -1,3 +1,5 @@
+[![Build Status](https://scrutinizer-ci.com/g/tworzenieweb/sql-provisioner/badges/build.png?b=master)](https://scrutinizer-ci.com/g/tworzenieweb/sql-provisioner/build-status/master) [![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/tworzenieweb/sql-provisioner/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/tworzenieweb/sql-provisioner/?branch=master)
+
 # SQL Provisioner
 
 Simple CLI tool for validating SQL files before inserting them into DB.
