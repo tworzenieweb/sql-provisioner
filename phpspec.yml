@@ -1,0 +1,11 @@
+suites:
+    sql_provisioner:
+        namespace: Tworzenieweb\SqlProvisioner
+        psr4_prefix: Tworzenieweb\SqlProvisioner
+
+extensions:
+  Memio\SpecGen\MemioSpecGenExtension: ~
+
+code_coverage:
+  format:
+    - text

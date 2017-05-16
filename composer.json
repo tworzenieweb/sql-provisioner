@@ -23,7 +23,12 @@
         "psr-4": {"Tworzenieweb\\SqlProvisioner\\": "src/"}
     },
     "require-dev": {
-        "phpspec/phpspec": "^3.3"
+        "phpspec/phpspec": "^3.3",
+        "memio/spec-gen": "^0.7",
+        "bossa/phpspec2-expect": "^2.2",
+        "leaphub/phpcs-symfony2-standard": "~2.0.0"
     },
+    "minimum-stability": "dev",
+    "prefer-stable":  true,
     "bin": ["bin/sql-provisioner"]
 }

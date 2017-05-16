@@ -6,7 +6,11 @@
         <service id="filesystem.working_directory" class="Tworzenieweb\SqlProvisioner\Filesystem\WorkingDirectory">
             <argument>%sql_provisioner.composer_bin_path%</argument>
             <argument type="service" id="filesystem.candidates_finder" />
+            <argument type="service" id="filesystem" />
+            <argument type="service" id="environment_loader" />
         </service>
+        <service id="environment_loader" class="Tworzenieweb\SqlProvisioner\Filesystem\EnvironmentLoader" />
+        <service public="false" class="Symfony\Component\Filesystem\Filesystem" id="filesystem" />
         <service id="database.parser" class="Tworzenieweb\SqlProvisioner\Database\Parser">
             <argument>%sql_provisioner.composer_bin_path%</argument>
         </service>

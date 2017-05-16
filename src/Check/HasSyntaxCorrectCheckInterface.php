@@ -9,7 +9,7 @@ use Tworzenieweb\SqlProvisioner\Model\Candidate;
  * @author Luke Adamczewski
  * @package Tworzenieweb\SqlProvisioner\Check
  */
-class HasSyntaxCorrectCheck implements Check
+class HasSyntaxCorrectCheckInterface implements CheckInterface
 {
     const ERROR_STATUS = 'PARSER_ERROR';
 
@@ -49,7 +49,9 @@ class HasSyntaxCorrectCheck implements Check
         return false;
     }
 
-
+    /**
+     * @return string
+     */
     public function getLastErrorMessage()
     {
         return $this->lastError;

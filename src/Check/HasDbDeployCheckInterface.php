@@ -10,7 +10,7 @@ use Tworzenieweb\SqlProvisioner\Model\Candidate;
  * @author Luke Adamczewski
  * @package Tworzenieweb\SqlProvisioner\Database
  */
-class HasDbDeployCheck implements Check
+class HasDbDeployCheckInterface implements CheckInterface
 {
     const SQL = <<<SQL
 SELECT `id`

@@ -2,7 +2,7 @@
 
 namespace Tworzenieweb\SqlProvisioner\Processor;
 
-use Tworzenieweb\SqlProvisioner\Check\Check;
+use Tworzenieweb\SqlProvisioner\Check\CheckInterface;
 use Tworzenieweb\SqlProvisioner\Model\Candidate;
 
 /**
@@ -11,7 +11,7 @@ use Tworzenieweb\SqlProvisioner\Model\Candidate;
  */
 class CandidateProcessor
 {
-    /** @var Check[] */
+    /** @var CheckInterface[] */
     private $checks;
 
     /** @var string */
@@ -21,7 +21,9 @@ class CandidateProcessor
     private $lastErrorMessage;
 
 
-
+    /**
+     * CandidateProcessor constructor
+     */
     public function __construct()
     {
         $this->checks = [];
@@ -30,9 +32,9 @@ class CandidateProcessor
 
 
     /**
-     * @param Check $check
+     * @param CheckInterface $check
      */
-    public function addCheck(Check $check)
+    public function addCheck(CheckInterface $check)
     {
         array_push($this->checks, $check);
     }

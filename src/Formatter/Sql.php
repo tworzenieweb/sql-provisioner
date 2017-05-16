@@ -11,7 +11,7 @@ use SqlFormatter;
 class Sql
 {
     /**
-     * @param $sql
+     * @param string $sql
      * @return String
      */
     public function format($sql)

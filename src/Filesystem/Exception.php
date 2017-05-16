@@ -9,10 +9,10 @@ namespace Tworzenieweb\SqlProvisioner\Filesystem;
 class Exception extends \Exception
 {
     /**
-     * @param $directory
+     * @param WorkingDirectory $directory
      * @return Exception
      */
-    public static function noFilesInDirectory($directory)
+    public static function noFilesInDirectory(WorkingDirectory $directory)
     {
         return new self(sprintf('No files matching search criteria were found in %s', $directory));
     }

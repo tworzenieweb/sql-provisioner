@@ -39,14 +39,18 @@ class Candidate
     }
 
 
-
+    /**
+     * @return string
+     */
     public function getName()
     {
         return $this->name;
     }
 
 
-
+    /**
+     * @return void
+     */
     public function markAsQueued()
     {
         $this->status = self::STATUS_QUEUED;

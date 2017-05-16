@@ -9,8 +9,8 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Finder\SplFileInfo;
-use Tworzenieweb\SqlProvisioner\Check\HasDbDeployCheck;
-use Tworzenieweb\SqlProvisioner\Check\HasSyntaxCorrectCheck;
+use Tworzenieweb\SqlProvisioner\Check\HasDbDeployCheckInterface;
+use Tworzenieweb\SqlProvisioner\Check\HasSyntaxCorrectCheckInterface;
 use Tworzenieweb\SqlProvisioner\Database\Connection;
 use Tworzenieweb\SqlProvisioner\Database\Exception as DatabaseException;
 use Tworzenieweb\SqlProvisioner\Database\Executor;
@@ -97,13 +97,13 @@ EOF;
 
 
     /**
-     * @param string $name
-     * @param WorkingDirectory $workingDirectory
-     * @param Connection $connection
-     * @param Sql $sqlFormatter
+     * @param string             $name
+     * @param WorkingDirectory   $workingDirectory
+     * @param Connection         $connection
+     * @param Sql                $sqlFormatter
      * @param CandidateProcessor $processor
-     * @param CandidateBuilder $builder
-     * @param Executor $executor
+     * @param CandidateBuilder   $builder
+     * @param Executor           $executor
      */
     public function __construct(
         $name,
@@ -113,7 +113,8 @@ EOF;
         CandidateProcessor $processor,
         CandidateBuilder $builder,
         Executor $executor
-    ) {
+    )
+    {
         $this->workingDirectory = $workingDirectory;
         $this->connection = $connection;
         $this->sqlFormatter = $sqlFormatter;
@@ -252,7 +253,7 @@ EOF;
     protected function processWorkingDirectory(InputInterface $input)
     {
         $this->workingDirectory = $this->workingDirectory->cd($input->getArgument('path'));
-        $this->loadDotEnv($input);
+        $this->loadOrCreateEnvironment($input);
         $this->io->success('DONE');
     }
 
@@ -261,15 +262,15 @@ EOF;
     /**
      * @param InputInterface $input
      */
-    private function loadDotEnv(InputInterface $input)
+    private function loadOrCreateEnvironment(InputInterface $input)
     {
         if ($input->getOption('init')) {
-            $this->workingDirectory->touchDotEnv();
+            $this->workingDirectory->createEnvironmentFile();
             $this->io->success(sprintf('Initial .env file created in %s', $this->workingDirectory));
             die(0);
         }
 
-        $this->workingDirectory->loadDotEnv();
+        $this->workingDirectory->loadEnvironment();
     }
 
 
@@ -412,12 +413,12 @@ EOF;
             case Candidate::STATUS_QUEUED:
                 $status = sprintf('<comment>%s</comment>', $status);
                 break;
-            case HasDbDeployCheck::ERROR_STATUS:
+            case HasDbDeployCheckInterface::ERROR_STATUS:
                 if ($this->skipProvisionedCandidates) {
                     return null;
                 }
                 break;
-            case HasSyntaxCorrectCheck::ERROR_STATUS:
+            case HasSyntaxCorrectCheckInterface::ERROR_STATUS:
                 $status = sprintf('<error>%s</error>', $status);
                 break;
         }

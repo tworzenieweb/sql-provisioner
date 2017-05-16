@@ -12,7 +12,7 @@ class Exception extends \Exception
 {
 
     /**
-     * @param Candidate $candidate
+     * @param Candidate     $candidate
      * @param \PDOException $pdoException
      * @return Exception
      */

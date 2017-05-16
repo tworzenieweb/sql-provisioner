@@ -2,7 +2,6 @@
 
 namespace Tworzenieweb\SqlProvisioner\Filesystem;
 
-use Dotenv\Dotenv;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
 
@@ -12,15 +11,16 @@ use Symfony\Component\Finder\Finder;
  */
 class WorkingDirectory
 {
-    const MANDATORY_ENV_VARIABLES = [
-        'DATABASE_USER',
-        'DATABASE_PASSWORD',
-        'DATABASE_NAME',
-        'DATABASE_PORT',
-        'DATABASE_HOST',
-        'PROVISIONING_TABLE',
-        'PROVISIONING_TABLE_CANDIDATE_NUMBER_COLUMN',
-    ];
+    const DRAFT_CONTENT = <<<DRAFT
+DATABASE_USER=[user]
+DATABASE_PASSWORD=[password]
+DATABASE_HOST=[host]
+DATABASE_PORT=[port]
+DATABASE_NAME=[database]
+PROVISIONING_TABLE=changelog_database_deployments
+PROVISIONING_TABLE_CANDIDATE_NUMBER_COLUMN=deploy_script_number
+DRAFT;
+    const FILE_SUFFIX = '.env';
 
     /** @var string */
     private $currentDirectory;
@@ -31,78 +31,53 @@ class WorkingDirectory
     /** @var string */
     private $currentDirectoryAbsolute;
 
+    /** @var EnvironmentLoaderInterface */
+    private $environmentLoader;
 
 
     /**
-     * @param $currentDirectory
-     * @param CandidatesFinder $finder
+     * @param string                     $currentDirectory
+     * @param CandidatesFinder           $finder
+     * @param Filesystem                 $filesystem
+     * @param EnvironmentLoaderInterface $environmentLoader
      */
-    public function __construct($currentDirectory, CandidatesFinder $finder)
+    public function __construct($currentDirectory, CandidatesFinder $finder, Filesystem $filesystem, EnvironmentLoaderInterface $environmentLoader)
     {
         $this->currentDirectory = $currentDirectory;
-        $this->filesystem = new Filesystem();
+        $this->filesystem = $filesystem;
         $this->currentDirectoryAbsolute = $this->buildAbsolutePath($currentDirectory);
         $this->finder = $finder;
+        $this->environmentLoader = $environmentLoader;
     }
 
-
-
     /**
-     * @param $newPath
+     * @param string $newPath
      * @return WorkingDirectory
      */
     public function cd($newPath)
     {
-        return new WorkingDirectory($newPath, $this->finder);
+        return new WorkingDirectory($newPath, $this->finder, $this->filesystem, $this->environmentLoader);
     }
 
-
-
-    public function touchDotEnv()
+    /**
+     * @return void
+     */
+    public function createEnvironmentFile()
     {
+        $targetFilename = $this->currentDirectoryAbsolute . DIRECTORY_SEPARATOR . self::FILE_SUFFIX;
         $this->filesystem->dumpFile(
-            $this->getDotEnvFilepath(),
-            <<<DRAFT
-DATABASE_USER=[user]
-DATABASE_PASSWORD=[password]
-DATABASE_HOST=[host]
-DATABASE_PORT=[port]
-DATABASE_NAME=[database]
-PROVISIONING_TABLE=changelog_database_deployments
-PROVISIONING_TABLE_CANDIDATE_NUMBER_COLUMN=deploy_script_number
-DRAFT
+            $targetFilename,
+            self::DRAFT_CONTENT
         );
     }
 
-
-
     /**
-     * @return string
+     * @return void
      */
-    public function getDotEnvFilepath()
+    public function loadEnvironment()
     {
-        return $this->currentDirectoryAbsolute . '/.env';
+        $this->environmentLoader->load($this);
     }
-
-
-
-    public function loadDotEnv()
-    {
-        (new Dotenv($this->currentDirectoryAbsolute))->load();
-
-        $hasAllKeys = count(
-                array_intersect_key(
-                    array_flip(self::MANDATORY_ENV_VARIABLES),
-                    $_ENV
-                )
-            ) === count(self::MANDATORY_ENV_VARIABLES);
-
-        if (!$hasAllKeys) {
-            throw new \LogicException('Provided .env is missing the mandatory keys');
-        }
-    }
-
-
 
     /**
      * @return Finder
@@ -112,7 +87,21 @@ DRAFT
         return $this->finder->find($this->currentDirectoryAbsolute);
     }
 
+    /**
+     * @return string
+     */
+    public function getCurrentDirectoryAbsolute(): string
+    {
+        return $this->currentDirectoryAbsolute;
+    }
 
+    /**
+     * @return string
+     */
+    public function __toString()
+    {
+        return $this->currentDirectoryAbsolute;
+    }
 
     /**
      * @param string $path

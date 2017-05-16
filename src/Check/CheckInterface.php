@@ -8,7 +8,7 @@ use Tworzenieweb\SqlProvisioner\Model\Candidate;
  * @author Luke Adamczewski
  * @package Tworzenieweb\SqlProvisioner\Database
  */
-interface Check
+interface CheckInterface
 {
     /**
      * @param Candidate $candidate
