@@ -4,7 +4,6 @@ namespace spec\Tworzenieweb\SqlProvisioner\Filesystem;
 
 use Tworzenieweb\SqlProvisioner\Filesystem\CandidatesFinder;
 use PhpSpec\ObjectBehavior;
-use Prophecy\Argument;
 
 /**
  * Class CandidatesFinderSpec
