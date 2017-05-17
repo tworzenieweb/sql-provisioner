@@ -2,6 +2,7 @@
 
 namespace Tworzenieweb\SqlProvisioner\Command;
 
+use RuntimeException;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -371,6 +372,7 @@ EOF;
     {
         try {
             $this->executor->execute($candidate);
+            $this->processor->postValidate($candidate);
         } catch (DatabaseException $databaseException) {
             $this->io->error($databaseException->getMessage());
             $this->io->writeln(
@@ -380,6 +382,9 @@ EOF;
                     $candidate->getContent()
                 )
             );
+            $this->terminate();
+        } catch (RuntimeException $runtimeException) {
+            $this->io->error($runtimeException->getMessage());
             $this->terminate();
         }
     }

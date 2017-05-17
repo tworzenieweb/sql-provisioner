@@ -2,6 +2,7 @@
 
 namespace Tworzenieweb\SqlProvisioner\Processor;
 
+use RuntimeException;
 use Tworzenieweb\SqlProvisioner\Check\CheckInterface;
 use Tworzenieweb\SqlProvisioner\Model\Candidate;
 
@@ -11,6 +12,7 @@ use Tworzenieweb\SqlProvisioner\Model\Candidate;
  */
 class CandidateProcessor
 {
+    const FATAL_POST_CHECK_ERROR = 'Your candidate query has failed. There was no entry in target changelog table added. Try adding query manually for more error.';
     /** @var CheckInterface[] */
     private $checks;
 
@@ -20,12 +22,17 @@ class CandidateProcessor
     /** @var string */
     private $lastErrorMessage;
 
+    /** @var CheckInterface[] */
+    private $postChecks;
+
+
 
     /**
      * CandidateProcessor constructor
      */
     public function __construct()
     {
+        $this->postChecks = [];
         $this->checks = [];
     }
 
@@ -40,6 +47,11 @@ class CandidateProcessor
     }
 
 
+
+    public function addPostCheck(CheckInterface $check)
+    {
+        array_push($this->postChecks, $check);
+    }
 
     /**
      * @param Candidate $candidate
@@ -61,6 +73,18 @@ class CandidateProcessor
     }
 
 
+
+    /**
+     * @param Candidate $candidate
+     */
+    public function postValidate(Candidate $candidate)
+    {
+        foreach ($this->postChecks as $check) {
+            if (!$check->execute($candidate)) {
+                throw new RuntimeException(sprintf(self::FATAL_POST_CHECK_ERROR));
+            }
+        }
+    }
 
     /**
      * @return string

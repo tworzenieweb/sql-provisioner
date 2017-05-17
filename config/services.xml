@@ -17,6 +17,7 @@
         <service id="check.has_db_deploy" class="Tworzenieweb\SqlProvisioner\Check\HasDbDeployCheck">
             <argument type="service" id="database.connection" />
             <tag name="provision.check" />
+            <tag name="provision.check.post" />
         </service>
         <service id="check.has_syntax_correct" class="Tworzenieweb\SqlProvisioner\Check\HasSyntaxCorrectCheck">
             <argument type="service" id="database.parser" />
