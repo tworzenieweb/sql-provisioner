@@ -34,6 +34,9 @@ DRAFT;
     /** @var EnvironmentLoaderInterface */
     private $environmentLoader;
 
+    /** @var CandidatesFinder */
+    private $finder;
+
 
     /**
      * @param string                     $currentDirectory
@@ -90,7 +93,7 @@ DRAFT;
     /**
      * @return string
      */
-    public function getCurrentDirectoryAbsolute(): string
+    public function getCurrentDirectoryAbsolute()
     {
         return $this->currentDirectoryAbsolute;
     }

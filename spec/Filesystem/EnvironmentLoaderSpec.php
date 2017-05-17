@@ -4,6 +4,7 @@ namespace spec\Tworzenieweb\SqlProvisioner\Filesystem;
 
 use Tworzenieweb\SqlProvisioner\Filesystem\EnvironmentLoader;
 use PhpSpec\ObjectBehavior;
+use Prophecy\Argument;
 use Tworzenieweb\SqlProvisioner\Filesystem\WorkingDirectory;
 
 /**

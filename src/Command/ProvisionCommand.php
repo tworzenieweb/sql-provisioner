@@ -9,8 +9,8 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Finder\SplFileInfo;
-use Tworzenieweb\SqlProvisioner\Check\HasDbDeployCheckInterface;
-use Tworzenieweb\SqlProvisioner\Check\HasSyntaxCorrectCheckInterface;
+use Tworzenieweb\SqlProvisioner\Check\HasDbDeployCheck;
+use Tworzenieweb\SqlProvisioner\Check\HasSyntaxCorrectCheck;
 use Tworzenieweb\SqlProvisioner\Database\Connection;
 use Tworzenieweb\SqlProvisioner\Database\Exception as DatabaseException;
 use Tworzenieweb\SqlProvisioner\Database\Executor;
@@ -277,6 +277,7 @@ EOF;
 
     private function setConnectionParameters()
     {
+        $this->connection->useMysql();
         $this->connection->setDatabaseName($_ENV['DATABASE_NAME']);
         $this->connection->setHost($_ENV['DATABASE_HOST']);
         $this->connection->setUser($_ENV['DATABASE_USER']);
@@ -413,12 +414,12 @@ EOF;
             case Candidate::STATUS_QUEUED:
                 $status = sprintf('<comment>%s</comment>', $status);
                 break;
-            case HasDbDeployCheckInterface::ERROR_STATUS:
+            case HasDbDeployCheck::ERROR_STATUS:
                 if ($this->skipProvisionedCandidates) {
                     return null;
                 }
                 break;
-            case HasSyntaxCorrectCheckInterface::ERROR_STATUS:
+            case HasSyntaxCorrectCheck::ERROR_STATUS:
                 $status = sprintf('<error>%s</error>', $status);
                 break;
         }

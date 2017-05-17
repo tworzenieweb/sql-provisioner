@@ -9,6 +9,8 @@
         }
     ],
     "require": {
+        "php": ">=5.6",
+        "ext-pdo": "*",
         "jdorn/sql-formatter": "^1.2",
         "symfony/console": "^3.2",
         "symfony/dependency-injection": "^3.2",
