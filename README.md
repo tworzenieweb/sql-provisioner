@@ -1,4 +1,7 @@
-[![Build Status](https://scrutinizer-ci.com/g/tworzenieweb/sql-provisioner/badges/build.png?b=master)](https://scrutinizer-ci.com/g/tworzenieweb/sql-provisioner/build-status/master) [![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/tworzenieweb/sql-provisioner/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/tworzenieweb/sql-provisioner/?branch=master)
+[![Build Status](https://travis-ci.org/tworzenieweb/sql-provisioner.svg?branch=master)](https://travis-ci.org/tworzenieweb/sql-provisioner)
+[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/tworzenieweb/sql-provisioner/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/tworzenieweb/sql-provisioner/?branch=master)
+
+[![SensioLabsInsight](https://insight.sensiolabs.com/projects/064d6b7a-544d-4f80-8f7b-e4ebfeeb3282/big.png)](https://insight.sensiolabs.com/projects/064d6b7a-544d-4f80-8f7b-e4ebfeeb3282)
 
 # SQL Provisioner
 

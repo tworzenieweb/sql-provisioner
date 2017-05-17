@@ -1,0 +1,17 @@
+filter:
+    paths: ["src/*"]
+    excluded_paths:
+        - "tests/"               # Everything in a root level "tests" directory
+        - "tests"                # Without trailing "/", just ignores a single file name "tests"
+
+build:
+    environment:
+        php:
+            version: 5.6.30
+    tests:
+      override:
+        -
+          command: 'vendor/bin/phpspec run -f progress'
+          coverage:
+            file: 'coverage.clover'
+            format: 'php-clover'

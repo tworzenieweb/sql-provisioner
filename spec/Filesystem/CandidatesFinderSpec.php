@@ -2,10 +2,8 @@
 
 namespace spec\Tworzenieweb\SqlProvisioner\Filesystem;
 
-use Symfony\Component\Finder\SplFileInfo;
 use Tworzenieweb\SqlProvisioner\Filesystem\CandidatesFinder;
 use PhpSpec\ObjectBehavior;
-use Prophecy\Argument;
 
 /**
  * Class CandidatesFinderSpec

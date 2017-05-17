@@ -114,8 +114,8 @@ EOF;
         CandidateProcessor $processor,
         CandidateBuilder $builder,
         Executor $executor
-    )
-    {
+    ) {
+    
         $this->workingDirectory = $workingDirectory;
         $this->connection = $connection;
         $this->sqlFormatter = $sqlFormatter;
@@ -334,9 +334,10 @@ EOF;
 
     private function printAllCandidates()
     {
+        /** @var ProvisionCommand $self */
         $self = $this;
         $rows = array_map(
-            function(Candidate $candidate) use ($self) {
+            function (Candidate $candidate) use ($self) {
                 return $self->buildCandidateRow($candidate);
             },
             $this->workingDirectoryCandidates

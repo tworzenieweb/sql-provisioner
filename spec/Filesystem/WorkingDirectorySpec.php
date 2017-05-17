@@ -28,6 +28,16 @@ class WorkingDirectorySpec extends ObjectBehavior
         $this->beConstructedWith($this->currentDirectory, $candidatesFinder, $filesystem, $environmentLoader);
     }
 
+    function it_should_change_working_directory(Filesystem $filesystem)
+    {
+        $temp = sys_get_temp_dir();
+        $filesystem->isAbsolutePath($temp)->willReturn(true);
+        $newWorkingDirectory = $this->cd(sys_get_temp_dir());
+        $newWorkingDirectory->shouldReturnAnInstanceOf(WorkingDirectory::class);
+        $this->shouldNotEqual($newWorkingDirectory);
+        $newWorkingDirectory->getCurrentDirectoryAbsolute()->shouldBe($temp);
+    }
+
     function it_should_provide_absolute_path()
     {
         $this->getCurrentDirectoryAbsolute()->shouldReturn($this->currentDirectory);

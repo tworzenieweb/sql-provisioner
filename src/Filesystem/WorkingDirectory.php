@@ -22,9 +22,6 @@ PROVISIONING_TABLE_CANDIDATE_NUMBER_COLUMN=deploy_script_number
 DRAFT;
     const FILE_SUFFIX = '.env';
 
-    /** @var string */
-    private $currentDirectory;
-
     /** @var Filesystem */
     private $filesystem;
 
@@ -46,7 +43,6 @@ DRAFT;
      */
     public function __construct($currentDirectory, CandidatesFinder $finder, Filesystem $filesystem, EnvironmentLoaderInterface $environmentLoader)
     {
-        $this->currentDirectory = $currentDirectory;
         $this->filesystem = $filesystem;
         $this->currentDirectoryAbsolute = $this->buildAbsolutePath($currentDirectory);
         $this->finder = $finder;

@@ -44,7 +44,13 @@ class Application extends \Symfony\Component\Console\Application
     protected function registerCommands()
     {
         foreach ($this->container->findTaggedServiceIds('console.command') as $commandId => $command) {
-            $this->add($this->getCommandForId($commandId));
+            $commandService = $this->getCommandForId($commandId);
+
+            if (null === $commandService) {
+                throw new RuntimeException(sprintf("Couldn't fetch service %s from container.", $commandId));
+            }
+
+            $this->add($commandService);
         }
     }
 
@@ -84,7 +90,7 @@ class Application extends \Symfony\Component\Console\Application
 
     /**
      * @param string $commandId
-     * @return Command
+     * @return Command|Object
      */
     protected function getCommandForId($commandId)
     {

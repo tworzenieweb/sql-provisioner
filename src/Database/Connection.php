@@ -100,14 +100,29 @@ class Connection
         return $this;
     }
 
+
+
+    /**
+     * @param bool $useMemoryStorage
+     * @return $this
+     */
     public function useSqlite($useMemoryStorage = false)
     {
         $this->dsn = $useMemoryStorage ? 'sqlite::memory:' : 'sqlite:%s';
+
+        return $this;
     }
 
+
+
+    /**
+     * @return $this
+     */
     public function useMysql()
     {
         $this->dsn = 'mysql:host=%s;port=%d;dbname=%s';
+
+        return $this;
     }
 
     /**
@@ -117,7 +132,9 @@ class Connection
     {
         if (null === $this->currentConnection) {
             $this->currentConnection = new PDO(
-                sprintf($this->dsn, $this->host, $this->port, $this->databaseName), $this->user, $this->password
+                sprintf($this->dsn, $this->host, $this->port, $this->databaseName),
+                $this->user,
+                $this->password
             );
             $this->currentConnection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             $this->currentConnection->setAttribute(PDO::ATTR_EMULATE_PREPARES, true);

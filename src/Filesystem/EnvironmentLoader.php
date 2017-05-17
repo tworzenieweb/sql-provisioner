@@ -2,7 +2,6 @@
 
 namespace Tworzenieweb\SqlProvisioner\Filesystem;
 
-
 use Dotenv\Dotenv;
 
 /**

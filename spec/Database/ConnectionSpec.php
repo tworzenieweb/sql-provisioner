@@ -24,4 +24,10 @@ class ConnectionSpec extends ObjectBehavior
 
         $this->getCurrentConnection();
     }
+
+
+    function it_should_use_mysql()
+    {
+        $this->useMysql()->shouldReturn($this);
+    }
 }

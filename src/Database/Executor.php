@@ -39,8 +39,7 @@ class Executor
             $statement = $connection->prepare($candidate->getContent());
             $statement->execute();
         } catch (PDOException $pdoException) {
-            $exception = Exception::candidateScriptError($candidate, $pdoException);
-            throw $exception;
+            throw Exception::candidateScriptError($candidate, $pdoException);
         }
     }
 

@@ -5,7 +5,11 @@ suites:
 
 extensions:
   Memio\SpecGen\MemioSpecGenExtension: ~
-
+  PhpSpecCodeCoverage\CodeCoverageExtension: ~
 code_coverage:
+  whitelist:
+    - src
   format:
-    - text
+    - clover
+  output:
+    clover: coverage.clover
