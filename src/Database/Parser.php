@@ -12,17 +12,20 @@ use Tworzenieweb\SqlProvisioner\Model\Candidate;
  */
 class Parser
 {
+    const PROCESS_TIMEOUT = 60;
+    const PROCESS_COMMAND = 'vendor/bin/php-sqllint -';
+
     /** @var string */
-    private $composerBinPath;
+    private $rootPath;
 
 
 
     /**
-     * @param string $composerBinPath
+     * @param string $rootPath
      */
-    public function __construct($composerBinPath)
+    public function __construct($rootPath)
     {
-        $this->composerBinPath = $composerBinPath;
+        $this->rootPath = $rootPath;
     }
 
 
@@ -33,31 +36,19 @@ class Parser
      */
     public function execute(Candidate $candidate)
     {
-        $input = new InputStream();
-        $input->write($candidate->getContent());
-
-        $process = new Process($this->getCommandString());
-        $process->setInput($input);
-        $process->setTimeout(null);
-        $process->start();
-
-        $input->close();
-        $process->wait();
+        $process = new Process(
+            self::PROCESS_COMMAND,
+            realpath($this->rootPath),
+            null,
+            $candidate->getContent(),
+            self::PROCESS_TIMEOUT
+        );
+        $process->run();
 
         // remove extra header
         $parsingResult = explode("\n", $process->getOutput());
         array_shift($parsingResult);
 
         return implode("\n", $parsingResult);
-    }
-
-
-
-    /**
-     * @return string
-     */
-    private function getCommandString()
-    {
-        return sprintf('%s/php-sqllint -', realpath($this->composerBinPath));
     }
 }

@@ -11,7 +11,7 @@ use Tworzenieweb\SqlProvisioner\Model\Candidate;
  */
 class HasSyntaxCorrectCheck implements CheckInterface
 {
-    const ERROR_STATUS = 'PARSER_ERROR';
+    const ERROR_STATUS = 'HAS_SYNTAX_ERROR';
 
     /** @var Parser */
     private $parser;

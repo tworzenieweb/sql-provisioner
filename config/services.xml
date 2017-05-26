@@ -4,7 +4,7 @@
            xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
     <services>
         <service id="filesystem.working_directory" class="Tworzenieweb\SqlProvisioner\Filesystem\WorkingDirectory">
-            <argument>%sql_provisioner.composer_bin_path%</argument>
+            <argument>%sql_provisioner.root_path%</argument>
             <argument type="service" id="filesystem.candidates_finder" />
             <argument type="service" id="filesystem" />
             <argument type="service" id="environment_loader" />
@@ -12,7 +12,7 @@
         <service id="environment_loader" class="Tworzenieweb\SqlProvisioner\Filesystem\EnvironmentLoader" />
         <service public="false" class="Symfony\Component\Filesystem\Filesystem" id="filesystem" />
         <service id="database.parser" class="Tworzenieweb\SqlProvisioner\Database\Parser">
-            <argument>%sql_provisioner.composer_bin_path%</argument>
+            <argument>%sql_provisioner.root_path%</argument>
         </service>
         <service id="check.has_db_deploy" class="Tworzenieweb\SqlProvisioner\Check\HasDbDeployCheck">
             <argument type="service" id="database.connection" />
@@ -24,8 +24,15 @@
             <tag name="provision.check" />
         </service>
         <service id="builder.candidate" class="Tworzenieweb\SqlProvisioner\Model\CandidateBuilder" />
+        <service id="builder.data_rows" class="Tworzenieweb\SqlProvisioner\Table\DataRowsBuilder" />
         <service id="processor.candidate" class="Tworzenieweb\SqlProvisioner\Processor\CandidateProcessor" />
-        <service id="database.connection" class="Tworzenieweb\SqlProvisioner\Database\Connection" />
+
+        <service id="database.connection_factory" class="Tworzenieweb\SqlProvisioner\Database\PDOConnectionFactory" />
+
+        <service id="database.connection" class="Tworzenieweb\SqlProvisioner\Database\Connection">
+            <argument type="service" id="database.connection_factory" />
+        </service>
+
         <service id="database.executor" class="Tworzenieweb\SqlProvisioner\Database\Executor">
             <argument type="service" id="database.connection" />
         </service>
@@ -38,6 +45,7 @@
             <argument type="service" id="formatter.sql" />
             <argument type="service" id="processor.candidate" />
             <argument type="service" id="builder.candidate" />
+            <argument type="service" id="builder.data_rows" />
             <argument type="service" id="database.executor" />
             <tag name="console.command" />
         </service>

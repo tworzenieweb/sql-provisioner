@@ -10,20 +10,14 @@ use PDO;
  */
 class Connection
 {
-    /** @var string */
-    private $host;
-
-    /** @var string */
-    private $port;
+    const DSN_MYSQL = 'mysql:host=%s;port=%d;dbname=%s';
+    const DSN_SQLITE = 'sqlite:%s';
 
     /** @var string */
     private $user;
 
     /** @var string */
     private $password;
-
-    /** @var string */
-    private $databaseName;
 
     /** @var PDO */
     private $currentConnection;
@@ -34,57 +28,20 @@ class Connection
     /** @var string */
     private $criteriaColumn;
 
+    /** @var string */
     private $dsn;
 
-
-    /**
-     * @param string $host
-     * @return $this
-     */
-    public function setHost($host)
-    {
-        $this->host = $host;
-
-        return $this;
-    }
+    /** @var ConnectionFactory */
+    private $connectionFactory;
 
 
 
     /**
-     * @param string $port
-     * @return $this
+     * @param ConnectionFactory $connectionFactory
      */
-    public function setPort($port)
+    public function __construct(ConnectionFactory $connectionFactory)
     {
-        $this->port = $port;
-
-        return $this;
-    }
-
-
-
-    /**
-     * @param string $user
-     * @return $this
-     */
-    public function setUser($user)
-    {
-        $this->user = $user;
-
-        return $this;
-    }
-
-
-
-    /**
-     * @param string $password
-     * @return $this
-     */
-    public function setPassword($password)
-    {
-        $this->password = $password;
-
-        return $this;
+        $this->connectionFactory = $connectionFactory;
     }
 
 
@@ -93,9 +50,9 @@ class Connection
      * @param string $databaseName
      * @return $this
      */
-    public function setDatabaseName($databaseName)
+    public function useSqlite($databaseName = ':memory:')
     {
-        $this->databaseName = $databaseName;
+        $this->dsn = sprintf(self::DSN_SQLITE, $databaseName);
 
         return $this;
     }
@@ -103,24 +60,18 @@ class Connection
 
 
     /**
-     * @param bool $useMemoryStorage
+     * @param string $host
+     * @param integer $port
+     * @param string $databaseName
+     * @param string $databaseUser
+     * @param string $databasePassword
      * @return $this
      */
-    public function useSqlite($useMemoryStorage = false)
+    public function useMysql($host, $port, $databaseName, $databaseUser, $databasePassword)
     {
-        $this->dsn = $useMemoryStorage ? 'sqlite::memory:' : 'sqlite:%s';
-
-        return $this;
-    }
-
-
-
-    /**
-     * @return $this
-     */
-    public function useMysql()
-    {
-        $this->dsn = 'mysql:host=%s;port=%d;dbname=%s';
+        $this->dsn = sprintf(self::DSN_MYSQL, $host, $port, $databaseName);
+        $this->user = $databaseUser;
+        $this->password = $databasePassword;
 
         return $this;
     }
@@ -131,14 +82,7 @@ class Connection
     public function getCurrentConnection()
     {
         if (null === $this->currentConnection) {
-            $this->currentConnection = new PDO(
-                sprintf($this->dsn, $this->host, $this->port, $this->databaseName),
-                $this->user,
-                $this->password
-            );
-            $this->currentConnection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-            $this->currentConnection->setAttribute(PDO::ATTR_EMULATE_PREPARES, true);
-            $this->currentConnection->setAttribute(PDO::MYSQL_ATTR_DIRECT_QUERY, true);
+            $this->currentConnection = $this->connectionFactory->build($this->dsn, $this->user, $this->password);
         }
 
         return $this->currentConnection;

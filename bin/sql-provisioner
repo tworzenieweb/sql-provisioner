@@ -1,8 +1,6 @@
 #!/usr/bin/env php
 <?php
 
-const VERSION = '0.0.7';
-
 $autoloadLocations = [
     getcwd() . '/vendor/autoload.php',
     getcwd() . '/../../autoload.php',
@@ -27,9 +25,5 @@ if (!$loaded) {
     exit(1);
 }
 
-use Tworzenieweb\SqlProvisioner\Application;
-
-$application = new Application();
-$application->setName('SQL Provisioner');
-$application->setVersion(VERSION);
-$application->run();
+set_time_limit(0);
+(new \Tworzenieweb\SqlProvisioner\Application())->run();

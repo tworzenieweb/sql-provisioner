@@ -10,8 +10,6 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Finder\SplFileInfo;
-use Tworzenieweb\SqlProvisioner\Check\HasDbDeployCheck;
-use Tworzenieweb\SqlProvisioner\Check\HasSyntaxCorrectCheck;
 use Tworzenieweb\SqlProvisioner\Database\Connection;
 use Tworzenieweb\SqlProvisioner\Database\Exception as DatabaseException;
 use Tworzenieweb\SqlProvisioner\Database\Executor;
@@ -21,6 +19,7 @@ use Tworzenieweb\SqlProvisioner\Formatter\Sql;
 use Tworzenieweb\SqlProvisioner\Model\Candidate;
 use Tworzenieweb\SqlProvisioner\Model\CandidateBuilder;
 use Tworzenieweb\SqlProvisioner\Processor\CandidateProcessor;
+use Tworzenieweb\SqlProvisioner\Table\DataRowsBuilder;
 
 /**
  * @author Luke Adamczewski
@@ -54,7 +53,6 @@ Then you can either skip or execute each.
 
 If you would like to skip already provisioned candidates use <info>--skip-provisioned</info>
 EOF;
-    const TABLE_HEADERS = ['FILENAME', 'STATUS'];
 
     /** @var int */
     private $candidateIndexValue = 1;
@@ -84,7 +82,10 @@ EOF;
     private $skipProvisionedCandidates = false;
 
     /** @var CandidateBuilder */
-    private $builder;
+    private $candidateBuilder;
+
+    /** @var DataRowsBuilder */
+    private $dataRowsBuilder;
 
     /** @var bool */
     private $hasQueuedCandidates = false;
@@ -95,16 +96,19 @@ EOF;
     /** @var array */
     private $errorMessages = [];
 
+    /** @var integer */
+    private $startTimestamp;
 
 
     /**
-     * @param string             $name
-     * @param WorkingDirectory   $workingDirectory
-     * @param Connection         $connection
-     * @param Sql                $sqlFormatter
+     * @param string $name
+     * @param WorkingDirectory $workingDirectory
+     * @param Connection $connection
+     * @param Sql $sqlFormatter
      * @param CandidateProcessor $processor
-     * @param CandidateBuilder   $builder
-     * @param Executor           $executor
+     * @param CandidateBuilder $candidateBuilder
+     * @param DataRowsBuilder $dataRowsBuilder
+     * @param Executor $executor
      */
     public function __construct(
         $name,
@@ -112,20 +116,21 @@ EOF;
         Connection $connection,
         Sql $sqlFormatter,
         CandidateProcessor $processor,
-        CandidateBuilder $builder,
+        CandidateBuilder $candidateBuilder,
+        DataRowsBuilder $dataRowsBuilder,
         Executor $executor
-    ) {
-    
+    )
+    {
         $this->workingDirectory = $workingDirectory;
         $this->connection = $connection;
         $this->sqlFormatter = $sqlFormatter;
         $this->processor = $processor;
-        $this->builder = $builder;
+        $this->candidateBuilder = $candidateBuilder;
+        $this->dataRowsBuilder = $dataRowsBuilder;
         $this->executor = $executor;
 
         parent::__construct($name);
     }
-
 
 
     protected function configure()
@@ -142,7 +147,6 @@ EOF;
         );
         $this->addArgument('path', InputArgument::REQUIRED, 'Path to dbdeploys folder');
     }
-
 
 
     /**
@@ -168,18 +172,17 @@ EOF;
     }
 
 
-
     /**
      * @param InputInterface $input
      * @param OutputInterface $output
      */
     protected function start(InputInterface $input, OutputInterface $output)
     {
+        $this->startTimestamp = time();
         $this->io = new SymfonyStyle($input, $output);
         $this->io->title('SQL Provisioner');
         $this->io->block(sprintf('Provisioning started at %s', date('Y-m-d H:i:s')));
     }
-
 
 
     protected function fetchCandidates()
@@ -197,13 +200,12 @@ EOF;
     }
 
 
-
     /**
      * @param SplFileInfo $candidateFile
      */
     protected function processCandidateFile($candidateFile)
     {
-        $candidate = $this->builder->build($candidateFile);
+        $candidate = $this->candidateBuilder->build($candidateFile);
         array_push($this->workingDirectoryCandidates, $candidate);
 
         if ($this->processor->isValid($candidate)) {
@@ -222,7 +224,6 @@ EOF;
     }
 
 
-
     protected function iterateOverWorkingDirectory()
     {
         foreach ($this->workingDirectory->getCandidates() as $candidateFile) {
@@ -237,7 +238,6 @@ EOF;
     }
 
 
-
     protected function showSyntaxErrors()
     {
         $this->io->warning(sprintf('Detected %d syntax checking issues', count($this->errorMessages)));
@@ -245,7 +245,6 @@ EOF;
         $this->io->writeln(sprintf('<error>%s</error>', implode("\n", $this->errorMessages)));
         $this->finish();
     }
-
 
 
     /**
@@ -257,7 +256,6 @@ EOF;
         $this->loadOrCreateEnvironment($input);
         $this->io->success('DONE');
     }
-
 
 
     /**
@@ -275,20 +273,14 @@ EOF;
     }
 
 
-
     private function setConnectionParameters()
     {
-        $this->connection->useMysql();
-        $this->connection->setDatabaseName($_ENV['DATABASE_NAME']);
-        $this->connection->setHost($_ENV['DATABASE_HOST']);
-        $this->connection->setUser($_ENV['DATABASE_USER']);
-        $this->connection->setPassword($_ENV['DATABASE_PASSWORD']);
+        $this->connection->useMysql($_ENV['DATABASE_HOST'], $_ENV['DATABASE_PORT'], $_ENV['DATABASE_NAME'], $_ENV['DATABASE_USER'], $_ENV['DATABASE_PASSWORD']);
         $this->connection->setProvisioningTable($_ENV['PROVISIONING_TABLE']);
         $this->connection->setCriteriaColumn($_ENV['PROVISIONING_TABLE_CANDIDATE_NUMBER_COLUMN']);
 
         $this->io->success(sprintf('Connection with `%s` established', $_ENV['DATABASE_NAME']));
     }
-
 
 
     private function processCandidates()
@@ -301,7 +293,6 @@ EOF;
         $this->printAllCandidates();
         $this->processQueuedCandidates();
     }
-
 
 
     /**
@@ -331,25 +322,15 @@ EOF;
     }
 
 
-
     private function printAllCandidates()
     {
-        /** @var ProvisionCommand $self */
-        $self = $this;
-        $rows = array_map(
-            function(Candidate $candidate) use ($self) {
-                return $self->buildCandidateRow($candidate);
-            },
-            $this->workingDirectoryCandidates
-        );
-
         $this->io->table(
-            self::TABLE_HEADERS,
-            array_filter($rows)
+            DataRowsBuilder::TABLE_HEADERS,
+            $this->dataRowsBuilder->build(
+                $this->workingDirectoryCandidates, $this->skipProvisionedCandidates)
         );
         $this->io->newLine(3);
     }
-
 
 
     private function processQueuedCandidates()
@@ -363,7 +344,6 @@ EOF;
         }
         $this->io->writeln('<info>All candidates scripts were executed</info>');
     }
-
 
 
     /**
@@ -391,45 +371,20 @@ EOF;
     }
 
 
-
     private function finish()
     {
         $this->io->text(sprintf('Provisioning ended at %s', date('Y-m-d H:i:s')));
+        $this->io->writeln(sprintf('<info>Memory used: %s MB. Total Time of provisioning: %s seconds</info>',
+            memory_get_peak_usage(true) / (pow(1024, 2)),
+            time() - $this->startTimestamp
+        ));
         die(0);
     }
-
 
 
     private function terminate()
     {
         $this->io->text(sprintf('Provisioning ended with error at %s', date('Y-m-d H:i:s')));
         die(1);
-    }
-
-
-
-    /**
-     * @param Candidate $candidate
-     * @return array|null
-     */
-    private function buildCandidateRow(Candidate $candidate)
-    {
-        $status = $candidate->getStatus();
-
-        switch ($status) {
-            case Candidate::STATUS_QUEUED:
-                $status = sprintf('<comment>%s</comment>', $status);
-                break;
-            case HasDbDeployCheck::ERROR_STATUS:
-                if ($this->skipProvisionedCandidates) {
-                    return null;
-                }
-                break;
-            case HasSyntaxCorrectCheck::ERROR_STATUS:
-                $status = sprintf('<error>%s</error>', $status);
-                break;
-        }
-
-        return [$candidate->getName(), $status];
     }
 }

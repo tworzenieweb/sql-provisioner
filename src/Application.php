@@ -14,6 +14,9 @@ use Symfony\Component\DependencyInjection\Loader\XmlFileLoader;
  */
 class Application extends \Symfony\Component\Console\Application
 {
+    const NAME = 'SQL Provisioner';
+    const VERSION = '0.2.0';
+
     /** @var ContainerBuilder */
     private $container;
 
@@ -23,7 +26,7 @@ class Application extends \Symfony\Component\Console\Application
      */
     public function __construct($name = 'UNKNOWN', $version = 'UNKNOWN')
     {
-        parent::__construct($name, $version);
+        parent::__construct(self::NAME, self::VERSION);
         $this->boot();
     }
 
@@ -32,7 +35,7 @@ class Application extends \Symfony\Component\Console\Application
     private function boot()
     {
         $this->container = new ContainerBuilder();
-        $this->container->setParameter('sql_provisioner.composer_bin_path', $this->getComposerBinPath());
+        $this->container->setParameter('sql_provisioner.root_path', $this->getRootPath());
 
         $loader = new XmlFileLoader($this->container, new FileLocator($this->getConfigPath()));
         $loader->load('services.xml');
@@ -67,9 +70,9 @@ class Application extends \Symfony\Component\Console\Application
     /**
      * @return string
      */
-    private function getComposerBinPath()
+    private function getRootPath()
     {
-        return __DIR__ . '/../vendor/bin';
+        return __DIR__ . '/..';
     }
 
 

@@ -9,6 +9,13 @@ namespace Tworzenieweb\SqlProvisioner\Model;
 class Candidate
 {
     const STATUS_QUEUED = 'QUEUED';
+    const STATUS_PENDING = 'PENDING';
+    const STATUS_ALREADY_DEPLOYED = 'ALREADY_DEPLOYED';
+    const STATUS_HAS_SYNTAX_ERROR = 'HAS_SYNTAX_ERROR';
+
+    const FILES_MASK = '/^\d{3,}\_.*\.sql$/';
+
+    private static $supportedStates = [self::STATUS_PENDING, self::STATUS_QUEUED, self::STATUS_ALREADY_DEPLOYED, self::STATUS_HAS_SYNTAX_ERROR];
 
     /** @var string */
     private $name;
@@ -25,17 +32,27 @@ class Candidate
     /** @var int */
     private $number;
 
+    /** @var boolean */
+    private $ignored;
 
 
     /**
      * @param string $name
      * @param string $content
+     * @throws Exception
      */
     public function __construct($name, $content)
     {
+
+        if (!preg_match(self::FILES_MASK, $name)) {
+            throw Exception::wrongFilename($name);
+        }
+
         $this->name = $name;
         $this->number = (int) explode('_', $name)[0];
         $this->content = $content;
+        $this->status = self::STATUS_PENDING;
+        $this->ignored = false;
     }
 
 
@@ -53,17 +70,18 @@ class Candidate
      */
     public function markAsQueued()
     {
-        $this->status = self::STATUS_QUEUED;
+        $this->changeState(self::STATUS_QUEUED);
     }
 
 
 
     /**
-     * @param string $status
+     * @param string $causeStatus
      */
-    public function markAsIgnored($status)
+    public function markAsIgnored($causeStatus)
     {
-        $this->status = $status;
+        $this->ignored = true;
+        $this->changeState($causeStatus);
         $this->content = null;
     }
 
@@ -118,6 +136,13 @@ class Candidate
     }
 
 
+    /**
+     * @return bool
+     */
+    public function isIgnored()
+    {
+        return $this->ignored;
+    }
 
     /**
      * @return bool
@@ -125,5 +150,33 @@ class Candidate
     public function isQueued()
     {
         return $this->status === self::STATUS_QUEUED;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isPending()
+    {
+        return $this->status === self::STATUS_PENDING;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isAlreadyDeployed()
+    {
+        return $this->status === self::STATUS_ALREADY_DEPLOYED;
+    }
+
+    /**
+     * @param string $newState
+     */
+    private function changeState($newState)
+    {
+        if (!in_array($newState, self::$supportedStates)) {
+            throw Exception::unsupportedCandidateState($newState, self::$supportedStates);
+        }
+
+        $this->status = $newState;
     }
 }
