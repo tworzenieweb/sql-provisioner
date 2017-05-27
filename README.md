@@ -5,7 +5,7 @@
 
 # SQL Provisioner
 
-Simple CLI tool for validating SQL files before inserting them into DB.
+Simple CLI tool for database changes deploying. It allows to review each dbdeploy file before executution.
 
 ## Getting Started
 
