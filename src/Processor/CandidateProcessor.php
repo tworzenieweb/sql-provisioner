@@ -103,4 +103,16 @@ class CandidateProcessor
     {
         return $this->lastErrorMessage;
     }
+
+
+
+    /**
+     * @param CheckInterface $check
+     */
+    public function removeCheck(CheckInterface $check)
+    {
+        $this->checks = array_filter($this->checks, function ($currentCheck) use ($check) {
+            return $check !== $currentCheck;
+        });
+    }
 }

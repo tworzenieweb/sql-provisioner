@@ -47,6 +47,7 @@
             <argument type="service" id="builder.candidate" />
             <argument type="service" id="builder.data_rows" />
             <argument type="service" id="database.executor" />
+            <argument type="service" id="check.has_syntax_correct" />
             <tag name="console.command" />
         </service>
     </services>

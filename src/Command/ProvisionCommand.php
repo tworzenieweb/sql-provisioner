@@ -10,6 +10,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Finder\SplFileInfo;
+use Tworzenieweb\SqlProvisioner\Check\HasSyntaxCorrectCheck;
 use Tworzenieweb\SqlProvisioner\Database\Connection;
 use Tworzenieweb\SqlProvisioner\Database\Exception as DatabaseException;
 use Tworzenieweb\SqlProvisioner\Database\Executor;
@@ -52,6 +53,8 @@ Before the insert, it will print the formatted output of a file and result of in
 Then you can either skip or execute each.
 
 If you would like to skip already provisioned candidates use <info>--skip-provisioned</info>
+If you would like to skip syntax checking (for speed purpose) of candidates use <info>--skip-syntax-check</info>
+
 EOF;
 
     /** @var int */
@@ -75,11 +78,17 @@ EOF;
     /** @var CandidateProcessor */
     private $processor;
 
+    /** @var HasSyntaxCorrectCheck */
+    private $hasSyntaxCorrectCheck;
+
     /** @var Executor */
     private $executor;
 
     /** @var boolean */
     private $skipProvisionedCandidates = false;
+
+    /** @var boolean */
+    private $skipParsing;
 
     /** @var CandidateBuilder */
     private $candidateBuilder;
@@ -100,6 +109,7 @@ EOF;
     private $startTimestamp;
 
 
+
     /**
      * @param string $name
      * @param WorkingDirectory $workingDirectory
@@ -109,6 +119,7 @@ EOF;
      * @param CandidateBuilder $candidateBuilder
      * @param DataRowsBuilder $dataRowsBuilder
      * @param Executor $executor
+     * @param HasSyntaxCorrectCheck $hasSyntaxCorrectCheck
      */
     public function __construct(
         $name,
@@ -118,7 +129,8 @@ EOF;
         CandidateProcessor $processor,
         CandidateBuilder $candidateBuilder,
         DataRowsBuilder $dataRowsBuilder,
-        Executor $executor
+        Executor $executor,
+        HasSyntaxCorrectCheck $hasSyntaxCorrectCheck
     )
     {
         $this->workingDirectory = $workingDirectory;
@@ -128,6 +140,7 @@ EOF;
         $this->candidateBuilder = $candidateBuilder;
         $this->dataRowsBuilder = $dataRowsBuilder;
         $this->executor = $executor;
+        $this->hasSyntaxCorrectCheck = $hasSyntaxCorrectCheck;
 
         parent::__construct($name);
     }
@@ -144,6 +157,12 @@ EOF;
             null,
             InputOption::VALUE_NONE,
             'Skip provisioned candidates from printing'
+        );
+        $this->addOption(
+            'skip-syntax-check',
+            null,
+            InputOption::VALUE_NONE,
+            'Skip executing of sql syntax check for each entry'
         );
         $this->addArgument('path', InputArgument::REQUIRED, 'Path to dbdeploys folder');
     }
@@ -162,6 +181,12 @@ EOF;
         if ($input->getOption('skip-provisioned')) {
             $this->skipProvisionedCandidates = true;
             $this->io->warning('Hiding of provisioned candidates ENABLED');
+        }
+
+        if ($input->getOption('skip-syntax-check')) {
+            $this->skipParsing = true;
+            $this->io->warning('SQL parsing disabled. This could lead to executing invalid queries.');
+            $this->processor->removeCheck($this->hasSyntaxCorrectCheck);
         }
 
         $this->processWorkingDirectory($input);
@@ -309,7 +334,7 @@ EOF;
             )
         );
         $this->io->text($this->sqlFormatter->format($candidate->getContent()));
-        $action = $this->io->choice('What action to perform', ['DEPLOY', 'SKIP', 'QUIT']);
+        $action = $this->io->choice(sprintf('What action to perform for %s', $candidate->getName()), ['DEPLOY', 'SKIP', 'QUIT']);
 
         switch ($action) {
             case 'DEPLOY':

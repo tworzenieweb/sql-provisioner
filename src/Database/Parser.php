@@ -12,8 +12,8 @@ use Tworzenieweb\SqlProvisioner\Model\Candidate;
  */
 class Parser
 {
-    const PROCESS_TIMEOUT = 60;
-    const PROCESS_COMMAND = 'vendor/bin/php-sqllint -';
+    const PROCESS_TIMEOUT = 120;
+    const PROCESS_COMMAND = 'vendor/bin/php-sqllint -r emacs -';
 
     /** @var string */
     private $rootPath;

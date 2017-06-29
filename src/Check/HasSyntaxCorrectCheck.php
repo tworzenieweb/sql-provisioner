@@ -2,6 +2,7 @@
 
 namespace Tworzenieweb\SqlProvisioner\Check;
 
+use Symfony\Component\Process\Exception\ProcessTimedOutException;
 use Tworzenieweb\SqlProvisioner\Database\Parser;
 use Tworzenieweb\SqlProvisioner\Model\Candidate;
 
@@ -38,12 +39,17 @@ class HasSyntaxCorrectCheck implements CheckInterface
     public function execute(Candidate $candidate)
     {
         $this->lastError = null;
-        $parsingResult = $this->parser->execute($candidate);
 
-        if (!empty($parsingResult)) {
-            $this->lastError = sprintf("Syntax error during processing of %s:\n%s", $candidate->getName(), $parsingResult);
+        try {
+            $parsingResult = $this->parser->execute($candidate);
 
-            return true;
+            if (!empty($parsingResult)) {
+                $this->lastError = sprintf("Syntax error during processing of %s:\n%s", $candidate->getName(), $parsingResult);
+
+                return true;
+            }
+        } catch (ProcessTimedOutException $processTimedOutException) {
+            $this->lastError = $processTimedOutException->getMessage() . "\nHint: you can disable syntax checking for queries too big for processing";
         }
 
         return false;
