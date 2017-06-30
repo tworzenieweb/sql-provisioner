@@ -8,7 +8,7 @@ use PDO;
  * @author Luke Adamczewski
  * @package Tworzenieweb\SqlProvisioner\Database
  */
-interface ConnectionFactory
+interface ConnectionFactoryInterface
 {
     /**
      * @param string $dsn

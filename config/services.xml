@@ -38,16 +38,21 @@
         </service>
         <service id="formatter.sql" class="Tworzenieweb\SqlProvisioner\Formatter\Sql" />
         <service id="filesystem.candidates_finder" class="Tworzenieweb\SqlProvisioner\Filesystem\CandidatesFinder" />
+
+        <service id="controller.provision" class="Tworzenieweb\SqlProvisioner\Controller\ProvisionDispatcher">
+            <argument type="service" id="database.executor" />
+            <argument type="service" id="processor.candidate" />
+            <argument type="service" id="check.has_syntax_correct" />
+            <argument type="service" id="formatter.sql" />
+        </service>
+
         <service id="command.provision" class="Tworzenieweb\SqlProvisioner\Command\ProvisionCommand">
             <argument type="string">provision</argument>
             <argument type="service" id="filesystem.working_directory" />
             <argument type="service" id="database.connection" />
-            <argument type="service" id="formatter.sql" />
-            <argument type="service" id="processor.candidate" />
             <argument type="service" id="builder.candidate" />
             <argument type="service" id="builder.data_rows" />
-            <argument type="service" id="database.executor" />
-            <argument type="service" id="check.has_syntax_correct" />
+            <argument type="service" id="controller.provision" />
             <tag name="console.command" />
         </service>
     </services>

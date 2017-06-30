@@ -10,16 +10,12 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Finder\SplFileInfo;
-use Tworzenieweb\SqlProvisioner\Check\HasSyntaxCorrectCheck;
+use Tworzenieweb\SqlProvisioner\Controller\ProvisionDispatcher;
 use Tworzenieweb\SqlProvisioner\Database\Connection;
-use Tworzenieweb\SqlProvisioner\Database\Exception as DatabaseException;
-use Tworzenieweb\SqlProvisioner\Database\Executor;
 use Tworzenieweb\SqlProvisioner\Filesystem\Exception;
 use Tworzenieweb\SqlProvisioner\Filesystem\WorkingDirectory;
-use Tworzenieweb\SqlProvisioner\Formatter\Sql;
 use Tworzenieweb\SqlProvisioner\Model\Candidate;
 use Tworzenieweb\SqlProvisioner\Model\CandidateBuilder;
-use Tworzenieweb\SqlProvisioner\Processor\CandidateProcessor;
 use Tworzenieweb\SqlProvisioner\Table\DataRowsBuilder;
 
 /**
@@ -57,14 +53,8 @@ If you would like to skip syntax checking (for speed purpose) of candidates use 
 
 EOF;
 
-    /** @var int */
-    private $candidateIndexValue = 1;
-
     /** @var Candidate[] */
     private $workingDirectoryCandidates = [];
-
-    /** @var Sql */
-    private $sqlFormatter;
 
     /** @var WorkingDirectory */
     private $workingDirectory;
@@ -75,20 +65,8 @@ EOF;
     /** @var Connection */
     private $connection;
 
-    /** @var CandidateProcessor */
-    private $processor;
-
-    /** @var HasSyntaxCorrectCheck */
-    private $hasSyntaxCorrectCheck;
-
-    /** @var Executor */
-    private $executor;
-
     /** @var boolean */
     private $skipProvisionedCandidates = false;
-
-    /** @var boolean */
-    private $skipParsing;
 
     /** @var CandidateBuilder */
     private $candidateBuilder;
@@ -96,17 +74,14 @@ EOF;
     /** @var DataRowsBuilder */
     private $dataRowsBuilder;
 
-    /** @var bool */
-    private $hasQueuedCandidates = false;
-
     /** @var integer */
     private $queuedCandidatesCount = 0;
 
     /** @var array */
     private $errorMessages = [];
 
-    /** @var integer */
-    private $startTimestamp;
+    /** @var ProvisionDispatcher */
+    private $dispatcher;
 
 
 
@@ -114,33 +89,24 @@ EOF;
      * @param string $name
      * @param WorkingDirectory $workingDirectory
      * @param Connection $connection
-     * @param Sql $sqlFormatter
-     * @param CandidateProcessor $processor
      * @param CandidateBuilder $candidateBuilder
      * @param DataRowsBuilder $dataRowsBuilder
-     * @param Executor $executor
-     * @param HasSyntaxCorrectCheck $hasSyntaxCorrectCheck
+     * @param ProvisionDispatcher $dispatcher
      */
     public function __construct(
         $name,
         WorkingDirectory $workingDirectory,
         Connection $connection,
-        Sql $sqlFormatter,
-        CandidateProcessor $processor,
         CandidateBuilder $candidateBuilder,
         DataRowsBuilder $dataRowsBuilder,
-        Executor $executor,
-        HasSyntaxCorrectCheck $hasSyntaxCorrectCheck
+        ProvisionDispatcher $dispatcher
     )
     {
         $this->workingDirectory = $workingDirectory;
         $this->connection = $connection;
-        $this->sqlFormatter = $sqlFormatter;
-        $this->processor = $processor;
         $this->candidateBuilder = $candidateBuilder;
         $this->dataRowsBuilder = $dataRowsBuilder;
-        $this->executor = $executor;
-        $this->hasSyntaxCorrectCheck = $hasSyntaxCorrectCheck;
+        $this->dispatcher = $dispatcher;
 
         parent::__construct($name);
     }
@@ -184,14 +150,11 @@ EOF;
         }
 
         if ($input->getOption('skip-syntax-check')) {
-            $this->skipParsing = true;
-            $this->io->warning('SQL parsing disabled. This could lead to executing invalid queries.');
-            $this->processor->removeCheck($this->hasSyntaxCorrectCheck);
+           $this->dispatcher->skipSyntaxCheck();
         }
 
         $this->processWorkingDirectory($input);
         $this->processCandidates();
-        $this->finish();
 
         return 0;
     }
@@ -203,8 +166,9 @@ EOF;
      */
     protected function start(InputInterface $input, OutputInterface $output)
     {
-        $this->startTimestamp = time();
         $this->io = new SymfonyStyle($input, $output);
+        $this->dispatcher->setInputOutput($this->io);
+
         $this->io->title('SQL Provisioner');
         $this->io->block(sprintf('Provisioning started at %s', date('Y-m-d H:i:s')));
     }
@@ -218,9 +182,9 @@ EOF;
             $this->showSyntaxErrors();
         }
 
-        if (false === $this->hasQueuedCandidates) {
+        if (!$this->queuedCandidatesCount) {
             $this->io->block('All candidates scripts were executed already.');
-            $this->finish();
+            $this->dispatcher->finalizeAndExit();
         }
     }
 
@@ -233,18 +197,15 @@ EOF;
         $candidate = $this->candidateBuilder->build($candidateFile);
         array_push($this->workingDirectoryCandidates, $candidate);
 
-        if ($this->processor->isValid($candidate)) {
-            $candidate->markAsQueued();
-            $candidate->setIndex($this->candidateIndexValue++);
-            $this->hasQueuedCandidates = true;
-            $this->queuedCandidatesCount++;
-        } else {
-            $candidate->markAsIgnored($this->processor->getLastError());
-            $lastErrorMessage = $this->processor->getLastErrorMessage();
+        try {
+            $this->dispatcher->validate($candidate);
 
-            if (!empty($lastErrorMessage)) {
-                array_push($this->errorMessages, $lastErrorMessage);
+            // can be also ignored but without error
+            if ($candidate->isQueued()) {
+                $this->queuedCandidatesCount++;
             }
+        } catch (RuntimeException $validationError) {
+            array_push($this->errorMessages, $validationError->getMessage());
         }
     }
 
@@ -267,8 +228,8 @@ EOF;
     {
         $this->io->warning(sprintf('Detected %d syntax checking issues', count($this->errorMessages)));
         $this->printAllCandidates();
-        $this->io->writeln(sprintf('<error>%s</error>', implode("\n", $this->errorMessages)));
-        $this->finish();
+        $this->io->warning(implode("\n", $this->errorMessages));
+        $this->dispatcher->finalizeAndExit();
     }
 
 
@@ -316,34 +277,7 @@ EOF;
         $this->setConnectionParameters();
         $this->fetchCandidates();
         $this->printAllCandidates();
-        $this->processQueuedCandidates();
-    }
-
-
-    /**
-     * @param Candidate $candidate
-     */
-    private function executeCandidateScript(Candidate $candidate)
-    {
-        $this->io->warning(
-            sprintf(
-                'PROCESSING [%d/%d] %s',
-                $candidate->getIndex(),
-                $this->queuedCandidatesCount,
-                $candidate->getName()
-            )
-        );
-        $this->io->text($this->sqlFormatter->format($candidate->getContent()));
-        $action = $this->io->choice(sprintf('What action to perform for %s', $candidate->getName()), ['DEPLOY', 'SKIP', 'QUIT']);
-
-        switch ($action) {
-            case 'DEPLOY':
-                $this->deployCandidate($candidate);
-                break;
-            case 'QUIT':
-                $this->finish();
-                break;
-        }
+        $this->dispatcher->deploy($this->workingDirectoryCandidates, $this->queuedCandidatesCount);
     }
 
 
@@ -355,61 +289,5 @@ EOF;
                 $this->workingDirectoryCandidates, $this->skipProvisionedCandidates)
         );
         $this->io->newLine(3);
-    }
-
-
-    private function processQueuedCandidates()
-    {
-        while (!empty($this->workingDirectoryCandidates)) {
-            $candidate = array_shift($this->workingDirectoryCandidates);
-
-            if ($candidate->isQueued()) {
-                $this->executeCandidateScript($candidate);
-            }
-        }
-        $this->io->writeln('<info>All candidates scripts were executed</info>');
-    }
-
-
-    /**
-     * @param Candidate $candidate
-     */
-    private function deployCandidate(Candidate $candidate)
-    {
-        try {
-            $this->executor->execute($candidate);
-            $this->processor->postValidate($candidate);
-        } catch (DatabaseException $databaseException) {
-            $this->io->error($databaseException->getMessage());
-            $this->io->writeln(
-                sprintf(
-                    "<bg=yellow>%s\n\r%s</>",
-                    $databaseException->getPrevious()->getMessage(),
-                    $candidate->getContent()
-                )
-            );
-            $this->terminate();
-        } catch (RuntimeException $runtimeException) {
-            $this->io->error($runtimeException->getMessage());
-            $this->terminate();
-        }
-    }
-
-
-    private function finish()
-    {
-        $this->io->text(sprintf('Provisioning ended at %s', date('Y-m-d H:i:s')));
-        $this->io->writeln(sprintf('<info>Memory used: %s MB. Total Time of provisioning: %s seconds</info>',
-            memory_get_peak_usage(true) / (pow(1024, 2)),
-            time() - $this->startTimestamp
-        ));
-        die(0);
-    }
-
-
-    private function terminate()
-    {
-        $this->io->text(sprintf('Provisioning ended with error at %s', date('Y-m-d H:i:s')));
-        die(1);
     }
 }

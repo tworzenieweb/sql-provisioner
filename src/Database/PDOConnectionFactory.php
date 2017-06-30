@@ -8,7 +8,7 @@ use PDO;
  * @author Luke Adamczewski
  * @package Tworzenieweb\SqlProvisioner\Database
  */
-class PDOConnectionFactory implements ConnectionFactory
+class PDOConnectionFactory implements ConnectionFactoryInterface
 {
     /**
      * @inheritdoc

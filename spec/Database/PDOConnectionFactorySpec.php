@@ -8,6 +8,7 @@ use PhpSpec\ObjectBehavior;
 
 /**
  * Class PDOConnectionFactorySpec
+ *
  * @package spec\Tworzenieweb\SqlProvisioner\Database
  * @mixin PDOConnectionFactory
  */

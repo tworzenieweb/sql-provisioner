@@ -31,15 +31,15 @@ class Connection
     /** @var string */
     private $dsn;
 
-    /** @var ConnectionFactory */
+    /** @var ConnectionFactoryInterface */
     private $connectionFactory;
 
 
 
     /**
-     * @param ConnectionFactory $connectionFactory
+     * @param ConnectionFactoryInterface $connectionFactory
      */
-    public function __construct(ConnectionFactory $connectionFactory)
+    public function __construct(ConnectionFactoryInterface $connectionFactory)
     {
         $this->connectionFactory = $connectionFactory;
     }

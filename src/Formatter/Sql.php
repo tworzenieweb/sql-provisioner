@@ -16,6 +16,12 @@ class Sql
      */
     public function format($sql)
     {
-        return SqlFormatter::format(SqlFormatter::removeComments($sql));
+        $output = SqlFormatter::format(SqlFormatter::removeComments($sql));
+
+        return preg_replace(
+            "/(\x1b\[37mINSERT.*?INTO)/im",
+            "\n\n$1",
+            $output
+        );
     }
 }

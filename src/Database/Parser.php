@@ -2,7 +2,6 @@
 
 namespace Tworzenieweb\SqlProvisioner\Database;
 
-use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
 use Tworzenieweb\SqlProvisioner\Model\Candidate;
 
