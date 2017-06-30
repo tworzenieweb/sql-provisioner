@@ -150,7 +150,7 @@ EOF;
         }
 
         if ($input->getOption('skip-syntax-check')) {
-           $this->dispatcher->skipSyntaxCheck();
+            $this->dispatcher->skipSyntaxCheck();
         }
 
         $this->processWorkingDirectory($input);
