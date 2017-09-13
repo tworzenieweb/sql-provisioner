@@ -10,7 +10,7 @@ use PDO;
  */
 class Connection
 {
-    const DSN_MYSQL = 'mysql:host=%s;port=%d;dbname=%s';
+    const DSN_MYSQL = 'mysql:host=%s;port=%d;dbname=%s;charset=utf8';
     const DSN_SQLITE = 'sqlite:%s';
 
     /** @var string */
