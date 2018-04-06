@@ -14,19 +14,19 @@ interface CheckInterface
      * @param Candidate $candidate
      * @return bool True / False based on the fact if check is met or not
      */
-    public function execute(Candidate $candidate);
+    public function execute(Candidate $candidate): bool;
 
 
 
     /**
      * @return string
      */
-    public function getErrorCode();
+    public function getErrorCode(): string;
 
 
 
     /**
      * @return string
      */
-    public function getLastErrorMessage();
+    public function getLastErrorMessage(): string;
 }

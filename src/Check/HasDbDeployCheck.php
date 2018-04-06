@@ -35,10 +35,9 @@ SQL;
 
 
     /**
-     * @param Candidate $candidate
-     * @return bool
+     * @inheritdoc
      */
-    public function execute(Candidate $candidate)
+    public function execute(Candidate $candidate): bool
     {
         $statement = $this->getConnection()->prepare($this->getSqlStatement());
         $statement->execute([$candidate->getNumber()]);
@@ -49,9 +48,9 @@ SQL;
 
 
     /**
-     * @return string
+     * @inheritdoc
      */
-    public function getErrorCode()
+    public function getErrorCode(): string
     {
         return self::ERROR_STATUS;
     }
@@ -69,11 +68,11 @@ SQL;
 
 
     /**
-     * @return null
+     * @inheritdoc
      */
-    public function getLastErrorMessage()
+    public function getLastErrorMessage(): string
     {
-        return null;
+        return '';
     }
 
 

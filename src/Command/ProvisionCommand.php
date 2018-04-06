@@ -205,7 +205,9 @@ EOF;
                 $this->queuedCandidatesCount++;
             }
         } catch (RuntimeException $validationError) {
-            array_push($this->errorMessages, $validationError->getMessage());
+            if ($validationError->getMessage()) {
+                array_push($this->errorMessages, $validationError->getMessage());
+            }
         }
     }
 

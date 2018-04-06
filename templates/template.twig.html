@@ -1,0 +1,354 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta name="viewport" content="width=width, initial-scale=1.0"/>
+    <meta name="format-detection" content="telephone=no"/>
+    <title>Basic title</title>
+    <link href='https://fonts.googleapis.com/css?family=Fira+Sans:400,300,500' rel='stylesheet' type='text/css'/>
+    <style type="text/css">
+        body, div, a, td, h1, h2, h3, h4, h5, h6, center, span, li {
+            font-family: Arial, sans-serif;
+            letter-spacing: -0.1px;
+            margin-bottom: 0;
+            margin-top: 0;
+            margin: 0;
+            margin: 0em;
+            margin-top: 0em;
+            margin-bottom: 0em;
+        }
+
+        @media screen {
+            @font-face {
+                font-family: 'Fira Sans';
+                font-style: normal;
+                font-weight: bold;
+                src: local('Fira Sans Medium'), local('FiraSans-Medium'), url(https://fonts.gstatic.com/s/firasans/v5/zM2u8V3CuPVwAAXFQcDi4Bampu5_7CjHW5spxoeN3Vs.woff2) format('woff2');
+            }
+            body, div, a, td, h1, h2, h3, h4, h5, h6, center, span, li {
+                font-family: 'Fira Sans', Arial, sans-serif !important;
+                letter-spacing: 0px !important;
+            }
+        }
+
+        body {
+            color: #535c65;
+            font-size: 10px;
+            line-height: 13px;
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-weight: normal;
+        }
+
+        br {
+            height: 18px !important;
+            mso-line-height-rule: exactly;
+            line-height: 18px !important;
+        }
+
+        div, a {
+            font-size: 13px;
+            line-height: 20px;
+            color: #535c65;
+        }
+
+        table, table td {
+            border-collapse: collapse;
+            mso-table-lspace: 0pt;
+            mso-table-rspace: 0pt;
+        }
+
+        img {
+            border: none;
+            display: block;
+        }
+
+        .onlymobile table, .onlymobile tr, .onlymobile td, .onlymobile p, .onlymobile strong, .onlymobile b, .onlymobile em, .onlymobile i, .onlymobile center,
+        .onlymobile div, .onlymobile img, .onlymobile a, .onlymobile h1, .onlymobile h2, .onlymobile h3, .onlymobile h4, .onlymobile h5,
+        .onlymobile h6, .onlymobile span, .onlymobile ul, .onlymobile li, .onlymobile ol, .onlymobile br, .onlymobile {
+            mso-hide: all !important;
+        }
+
+        div.prehide {
+            display: none !important;
+            width: 0px !important;
+            height: 1px !important;
+            background-repeat: no-repeat !important;
+        }
+
+        @media only screen and (max-width: 620px) {
+            table[class*="mobileOutl"], td[class*="mobileOutl"], img[class*="mobileOutl"] {
+                width: 100% !important;
+                min-width: 310px !important;
+            }
+
+            table[class*="width100"], img[class*="width100"], a[class*="width100"] {
+                width: 100% !important;
+                padding: 0 !important;
+            }
+
+            table[class*="width96"] {
+                width: 96% !important;
+                padding: 0 !important;
+            }
+
+            td[class*="TDwidth100"] {
+                width: 100% !important;
+                display: block !important;
+            }
+
+            td[class*="width80"] {
+                width: 80% !important;
+                table-layout: fixed !important;
+            }
+
+            td[class*="width50"] {
+                width: 50% !important;
+                table-layout: fixed !important;
+            }
+
+            td[class*="width20"] {
+                width: 20% !important;
+                table-layout: fixed !important;
+            }
+
+            td[class*="vSpace2"] {
+                width: 3% !important;
+            }
+
+            td[class*="vSpace5"] {
+                width: 5% !important;
+            }
+
+            td[class*="vSpace8"] {
+                width: 8% !important;
+            }
+
+            td[class*="vSpace4"] {
+                width: 4% !important;
+            }
+
+            td[class*="vSpace2"] img, td[class*="vSpace5"] img, td[class*="vSpace8"] img, td[class*="vSpace4"] img {
+                width: 1px !important;
+            }
+
+            td[class*="vSpace96"] {
+                width: 94% !important;
+            }
+
+            td[class*="vSpace84"] {
+                width: 84% !important;
+            }
+
+            td[class*="vSpace48"] {
+                width: 48% !important;
+            }
+
+            td[class*="vSpace60"] {
+                width: 60% !important;
+            }
+
+            td[class*="vSpace30"] {
+                width: 30% !important;
+            }
+
+            td[class*="vSpace62"] {
+                width: 62% !important;
+            }
+
+            td[class*="vSpace45"] {
+                width: 45% !important;
+            }
+
+            td[class*="vSpace90"] {
+                width: 90% !important;
+            }
+
+            td[class*="vSpaceAuto"] {
+                width: auto !important;
+            }
+
+            td[class*="centerTD"] {
+                text-align: center !important;
+            }
+
+            td[class*="centerTD"] img {
+                margin: 0 auto !important;
+            }
+
+            td[class*="resetHeight"], img[class*="resetHeight"], table[class*="resetHeight"] {
+                height: auto !important;
+            }
+
+            td[class*="resetWidth"], img[class*="resetWidth"], table[class*="resetWidth"] {
+                width: auto !important;
+            }
+
+            img[class*="resetImg"] {
+                height: 1px !important;
+                width: 1px !important;
+                min-width: 0 !important;
+            }
+
+            img[class*="scale100"] {
+                width: auto !important;
+                min-width: 100% !important;
+                height: auto !important;
+            }
+
+            img[class*="scale50"] {
+                width: auto !important;
+                width: 50% !important;
+                height: auto !important;
+            }
+
+            img[class*="scale80"] {
+                width: auto !important;
+                min-width: 80% !important;
+                height: auto !important;
+                margin: 0 auto;
+            }
+
+            a[class*="mBtn"] {
+                width: 100% !important;
+                display: block !important;
+                font-size: 17px !important;
+                margin: 0 auto !important;
+            }
+
+            a[class*="mBtn"] span {
+                line-height: 26px !important;
+                padding: 10px 10px 10px 10px !important;
+            }
+
+            table[class*="hide"], td[class*="hide"], br[class*="hide"], div[class*="hide"], span[class*="hide"], img[class*="hide"] {
+                display: none !important;
+                width: 0px !important;
+                height: 0px !important;
+                background-repeat: no-repeat !important;
+            }
+
+            *[class*="onlymobile"] {
+                display: block !important;
+                max-height: none !important;
+            }
+        }
+    </style>
+    <style type="text/css" media="screen">
+        <!--
+
+        @media only screen and (max-width: 620px) {
+
+            div[class*="pd-left20"] {
+                padding: 0 0 0 20px !important;
+            }
+
+            td[class*="resetPadding"] {
+                padding: 0 0 0 0 !important;
+            }
+
+            td[class*="padding20"] {
+                padding: 20px 0 20px 0 !important;
+            }
+
+        }
+
+        -->
+    </style>
+</head>
+<body bgcolor="#f2f2f2"
+      style="background-color:#f2f2f2;padding:0;margin:0;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;-ms-interpolation-mode: bicubic;">
+<table width="100%" border="0" cellspacing="0" cellpadding="0" bgcolor="#f2f2f2">
+    <tr>
+        <td width="20" class="hide">&#160;</td>
+        <td valign="top" align="center">
+            <!--subjects start -->
+            <!--subjects end -->
+
+
+            <table style="background-color:#ffffff; margin-top: 20px;" class="mobileOutl" cellspacing="0" cellpadding="0" bgcolor="#ffffff" width="590" border="0">
+                <tbody>
+                <tr>
+                    <td valign="top">
+
+                        <table border="0" cellspacing="0" cellpadding="0" width="100%">
+                            <tr>
+                                <td width="5">&#160;</td>
+                                <td style="padding:28px 0 20px 0;" align="center" valign="top">
+                                    <img src="http://mail-assets.jobleads.de/gfx/logo_jl.gif" alt="" shrinktofit="true"
+                                         border="0"/>
+                                </td>
+                                <td width="5">&#160;</td>
+                            </tr>
+                        </table>
+
+
+                        <table cellspacing="0" cellpadding="0" width="100%" border="0">
+                            <tr>
+                                <td class="vSpace2" width="30">&#160;</td>
+                                <td style="padding:20px 0 30px 0;" class="vSpace96" valign="top">
+                                    <table class="width100" cellspacing="0" cellpadding="0" align="center" border="0">
+                                        <tr>
+                                            <td>
+                                                <div>
+                                                    <h1 style="font-size: 20px">The following SQL was executed on server {{serverHost}}:</h1>
+                                                    <br /><br />
+                                                    <p><strong>Database: {{dbName}}</strong></p>
+                                                    <p><strong>Filename: {{filename}}</strong></p>
+                                                </div>
+
+<pre style="background: #f0f0f0; padding: 20px; margin-top: 40px;white-space: pre-wrap; white-space: -moz-pre-wrap; white-space: -pre-wrap; white-space: -o-pre-wrap; word-wrap: break-word;">
+{{sql}}
+</pre>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                                <td class="vSpace2" width="30">&#160;</td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <div style="font-size:1px;line-height:1px;mso-line-height-rule:exactly;"><img
+                                src="http://mail-assets.jobleads.de/gfx/t.gif" alt=""
+                                style="min-width:590px;height:1px;" class="resetImg" shrinktofit="true" height="1"
+                                width="590" border="0"></div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+
+            <table width="590" border="0" cellspacing="0" cellpadding="0" align="center" class="mobileOutl">
+                <tr>
+                    <td align="left" width="590" style="padding: 30px 0 30px 0;">
+                        <div style="font-weight:bold;font-size:12px;color:#535c65;mso-line-height-rule:exactly;line-height:17px;">
+                            &#169; JobLeads GmbH | Großer Burstah 36-38 | 20457 Hamburg <br/>
+                            Sitz der Gesellschaft: Hamburg <br/>
+                            AG Hamburg, HRB 101441 <br/>
+                            Geschäftsführer: Christian von Ahlen, Jan Hendrik von Ahlen, Martin Schmidt
+                        </div>
+                    </td>
+                </tr>
+            </table>
+
+            <table width="100%" border="0" cellspacing="0" cellpadding="0" align="center" style="mso-hide:all;">
+                <tr style="mso-hide:all;">
+                    <td align="center" style="mso-hide:all;">
+                        <div style="font-size:1px;line-height:1px;mso-line-height-rule:exactly;mso-hide:all;"><img
+                                src="http://mail-assets.jobleads.de/gfx/t.gif" width="620" height="1" alt="" border="0"
+                                style="min-width:620px;height:1px;mso-hide:all;" class="resetImg"/></div>
+                    </td>
+                </tr>
+            </table>
+        </td>
+        <td width="20" class="hide">&#160;</td>
+    </tr>
+</table>
+</body>
+</html>

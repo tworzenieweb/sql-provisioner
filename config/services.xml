@@ -19,6 +19,13 @@
             <tag name="provision.check" />
             <tag name="provision.check.post" />
         </service>
+        <service id="check.send_email" class="Tworzenieweb\SqlProvisioner\Check\SendEmailAfterExecution">
+            <argument type="service" id="mailer.mailer" />
+            <argument type="service" id="config" />
+            <argument type="service" id="view" />
+            <argument type="service" id="database.connection" />
+            <tag name="provision.check.post" />
+        </service>
         <service id="check.has_syntax_correct" class="Tworzenieweb\SqlProvisioner\Check\HasSyntaxCorrectCheck">
             <argument type="service" id="database.parser" />
             <tag name="provision.check" />
@@ -54,6 +61,32 @@
             <argument type="service" id="builder.data_rows" />
             <argument type="service" id="controller.provision" />
             <tag name="console.command" />
+        </service>
+
+        <service id="config" class="Tworzenieweb\SqlProvisioner\Config\Config">
+            <argument>%sql_provisioner.root_path%</argument>
+        </service>
+
+        <service id="mailer.smtp.transport" class="Swift_SmtpTransport">
+            <argument type="expression">service('config').getSmtpHost()</argument>
+            <call method="setUsername">
+                <argument type="expression">service('config').getSmtpUsername()</argument>
+            </call>
+            <call method="setPassword">
+                <argument type="expression">service('config').getSmtpPassword()</argument>
+            </call>
+        </service>
+
+        <service id="mailer.swift.mailer" class="Swift_Mailer">
+            <argument type="service" id="mailer.smtp.transport" />
+        </service>
+
+        <service id="mailer.mailer" class="Tworzenieweb\SqlProvisioner\Service\Mailer">
+            <argument type="service" id="mailer.swift.mailer" />
+        </service>
+
+        <service id="view" class="Tworzenieweb\SqlProvisioner\View\View">
+            <argument>%sql_provisioner.root_path%</argument>
         </service>
     </services>
 </container>

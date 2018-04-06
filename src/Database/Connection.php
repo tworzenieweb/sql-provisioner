@@ -133,4 +133,11 @@ class Connection
     {
         return $this->criteriaColumn;
     }
+
+
+
+    public function getDatabaseName(): string
+    {
+        return $this->currentConnection->query('select database()')->fetchColumn();
+    }
 }

@@ -33,10 +33,9 @@ class HasSyntaxCorrectCheck implements CheckInterface
 
 
     /**
-     * @param Candidate $candidate
-     * @return bool True / False based on the fact if check is met or not
+     * @inheritdoc
      */
-    public function execute(Candidate $candidate)
+    public function execute(Candidate $candidate): bool
     {
         $this->lastError = null;
 
@@ -56,18 +55,18 @@ class HasSyntaxCorrectCheck implements CheckInterface
     }
 
     /**
-     * @return string
+     * @inheritdoc
      */
-    public function getLastErrorMessage()
+    public function getLastErrorMessage(): string
     {
         return $this->lastError;
     }
 
 
     /**
-     * @return string
+     * @inheritdoc
      */
-    public function getErrorCode()
+    public function getErrorCode(): string
     {
         return self::ERROR_STATUS;
     }
