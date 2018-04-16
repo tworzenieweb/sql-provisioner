@@ -14,7 +14,7 @@ class DataRowsBuilder
 
     /**
      * @param Candidate $candidate
-     * @param boolean $skipAlreadyDeployed
+     * @param boolean   $skipAlreadyDeployed
      * @return array|null
      */
     public static function buildCandidateRow(Candidate $candidate, $skipAlreadyDeployed)
@@ -52,7 +52,7 @@ class DataRowsBuilder
 
     /**
      * @param Candidate[] $candidates
-     * @param boolean $skipAlreadyDeployed
+     * @param boolean     $skipAlreadyDeployed
      * @return array
      */
     public function build(array $candidates, $skipAlreadyDeployed)

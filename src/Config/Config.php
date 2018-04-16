@@ -7,8 +7,6 @@ use Dotenv\Dotenv;
 class Config
 {
     const MANDATORY_ENV_VARIABLES = [
-        self::SMTP_USER,
-        self::SMTP_PASSWORD,
         self::SMTP_HOST,
         self::EMAIL_SUBJECT,
         self::FROM_EMAIL,

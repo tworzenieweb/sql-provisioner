@@ -60,11 +60,11 @@ class Connection
 
 
     /**
-     * @param string $host
+     * @param string  $host
      * @param integer $port
-     * @param string $databaseName
-     * @param string $databaseUser
-     * @param string $databasePassword
+     * @param string  $databaseName
+     * @param string  $databaseUser
+     * @param string  $databasePassword
      * @return $this
      */
     public function useMysql($host, $port, $databaseName, $databaseUser, $databasePassword)

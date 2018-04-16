@@ -48,17 +48,18 @@ class ProvisionDispatcher
     /**
      * ActionDispatcher constructor.
      *
-     * @param Executor $executor
-     * @param CandidateProcessor $processor
+     * @param Executor              $executor
+     * @param CandidateProcessor    $processor
      * @param HasSyntaxCorrectCheck $check
-     * @param Sql $sqlFormatter
+     * @param Sql                   $sqlFormatter
      */
     public function __construct(
         Executor $executor,
         CandidateProcessor $processor,
         HasSyntaxCorrectCheck $check,
         Sql $sqlFormatter
-    ) {
+    ) 
+    {
         $this->executor = $executor;
         $this->processor = $processor;
         $this->syntaxCheck = $check;
@@ -80,7 +81,7 @@ class ProvisionDispatcher
 
     /**
      * @param Candidate[] $workingDirectoryCandidates
-     * @param int $queuedCandidatesCount
+     * @param int         $queuedCandidatesCount
      */
     public function deploy(array $workingDirectoryCandidates, $queuedCandidatesCount)
     {

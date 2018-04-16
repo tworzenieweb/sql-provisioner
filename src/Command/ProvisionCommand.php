@@ -86,11 +86,11 @@ EOF;
 
 
     /**
-     * @param string $name
-     * @param WorkingDirectory $workingDirectory
-     * @param Connection $connection
-     * @param CandidateBuilder $candidateBuilder
-     * @param DataRowsBuilder $dataRowsBuilder
+     * @param string              $name
+     * @param WorkingDirectory    $workingDirectory
+     * @param Connection          $connection
+     * @param CandidateBuilder    $candidateBuilder
+     * @param DataRowsBuilder     $dataRowsBuilder
      * @param ProvisionDispatcher $dispatcher
      */
     public function __construct(
@@ -288,7 +288,7 @@ EOF;
         $this->io->table(
             DataRowsBuilder::TABLE_HEADERS,
             $this->dataRowsBuilder->build(
-                $this->workingDirectoryCandidates, $this->skipProvisionedCandidates)
+            $this->workingDirectoryCandidates, $this->skipProvisionedCandidates)
         );
         $this->io->newLine(3);
     }
