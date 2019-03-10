@@ -7,9 +7,10 @@
             <argument>%sql_provisioner.root_path%</argument>
             <argument type="service" id="filesystem.candidates_finder" />
             <argument type="service" id="filesystem" />
-            <argument type="service" id="environment_loader" />
+            <argument type="service" id="environment_loader.silent" />
         </service>
         <service id="environment_loader" class="Tworzenieweb\SqlProvisioner\Filesystem\EnvironmentLoader" />
+        <service id="environment_loader.silent" class="Tworzenieweb\SqlProvisioner\Filesystem\SilentEnvironmentLoader" />
         <service public="false" class="Symfony\Component\Filesystem\Filesystem" id="filesystem" />
         <service id="database.parser" class="Tworzenieweb\SqlProvisioner\Database\Parser">
             <argument>%sql_provisioner.root_path%</argument>
@@ -21,7 +22,7 @@
         </service>
         <service id="check.send_email" class="Tworzenieweb\SqlProvisioner\Check\SendEmailAfterExecution">
             <argument type="service" id="mailer.mailer" />
-            <argument type="service" id="config" />
+            <argument type="service" id="config.email" />
             <argument type="service" id="view" />
             <argument type="service" id="database.connection" />
             <tag name="provision.check.post" />
@@ -51,6 +52,7 @@
             <argument type="service" id="processor.candidate" />
             <argument type="service" id="check.has_syntax_correct" />
             <argument type="service" id="formatter.sql" />
+            <argument type="service" id="config.provision" />
         </service>
 
         <service id="command.provision" class="Tworzenieweb\SqlProvisioner\Command\ProvisionCommand">
@@ -60,20 +62,25 @@
             <argument type="service" id="builder.candidate" />
             <argument type="service" id="builder.data_rows" />
             <argument type="service" id="controller.provision" />
+            <argument type="service" id="config.provision" />
             <tag name="console.command" />
         </service>
 
-        <service id="config" class="Tworzenieweb\SqlProvisioner\Config\Config">
+        <service id="config.email" class="Tworzenieweb\SqlProvisioner\Config\EmailConfig">
             <argument>%sql_provisioner.root_path%</argument>
+        </service>
+        <service id="config.provision" class="Tworzenieweb\SqlProvisioner\Config\ProvisionConfig">
+            <argument>%sql_provisioner.root_path%</argument>
+            <argument type="service" id="config.email" />
         </service>
 
         <service id="mailer.smtp.transport" class="Swift_SmtpTransport">
-            <argument type="expression">service('config').getSmtpHost()</argument>
+            <argument type="expression">service('config.email').getSmtpHost()</argument>
             <call method="setUsername">
-                <argument type="expression">service('config').getSmtpUsername()</argument>
+                <argument type="expression">service('config.email').getSmtpUsername()</argument>
             </call>
             <call method="setPassword">
-                <argument type="expression">service('config').getSmtpPassword()</argument>
+                <argument type="expression">service('config.email').getSmtpPassword()</argument>
             </call>
         </service>
 

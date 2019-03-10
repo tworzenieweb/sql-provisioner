@@ -3,8 +3,7 @@
 namespace Tworzenieweb\SqlProvisioner\Check;
 
 use Swift_Message;
-use Twig\Node\Expression\Binary\StartsWithBinary;
-use Tworzenieweb\SqlProvisioner\Config\Config;
+use Tworzenieweb\SqlProvisioner\Config\EmailConfig;
 use Tworzenieweb\SqlProvisioner\Database\Connection;
 use Tworzenieweb\SqlProvisioner\Model\Candidate;
 use Tworzenieweb\SqlProvisioner\Service\Mailer;
@@ -15,7 +14,7 @@ class SendEmailAfterExecution implements CheckInterface
     /** @var Mailer */
     private $mailer;
 
-    /** @var Config */
+    /** @var EmailConfig */
     private $config;
 
     /** @var View */
@@ -26,7 +25,7 @@ class SendEmailAfterExecution implements CheckInterface
 
 
 
-    public function __construct(Mailer $mailer, Config $config, View $view, Connection $connection)
+    public function __construct(Mailer $mailer, EmailConfig $config, View $view, Connection $connection)
     {
         $this->mailer = $mailer;
         $this->config = $config;
@@ -38,6 +37,10 @@ class SendEmailAfterExecution implements CheckInterface
 
     public function execute(Candidate $candidate): bool
     {
+        if (!$this->config->isEnabled()) {
+            return true;
+        }
+
         $message = $this->composeMessage($candidate);
         $mailsSent = $this->mailer->send($message);
 

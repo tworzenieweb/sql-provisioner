@@ -2,9 +2,7 @@
 
 namespace Tworzenieweb\SqlProvisioner\Config;
 
-use Dotenv\Dotenv;
-
-class Config
+class EmailConfig
 {
     const MANDATORY_ENV_VARIABLES = [
         self::SMTP_HOST,
@@ -20,68 +18,88 @@ class Config
     const TO_EMAILS = 'TO_EMAILS';
     const SERVER_HOST = 'SERVER_HOST';
 
+    /** @var bool  */
+    private $enabled = true;
 
-
-    public function __construct(string $path)
+    /**
+     * @return $this
+     */
+    public function enable()
     {
-        $loader = new Dotenv($path);
-        $loader->load();
-        $loader->required(self::MANDATORY_ENV_VARIABLES)->notEmpty();
+        $this->enabled = true;
+
+        return $this;
     }
 
+    /**
+     * @return $this
+     */
+    public function disable()
+    {
+        $this->enabled = false;
 
+        return $this;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isEnabled()
+    {
+        return $this->enabled === true;
+    }
 
     public function getSmtpUsername(): string
     {
-        return $_ENV[self::SMTP_USER];
+        return getenv(self::SMTP_USER);
     }
 
 
 
     public function getSmtpPassword(): string
     {
-        return $_ENV[self::SMTP_PASSWORD];
+        return getenv(self::SMTP_PASSWORD);
     }
 
 
 
     public function getSmtpHost(): string
     {
-        return $_ENV[self::SMTP_HOST];
+        return getenv(self::SMTP_HOST);
     }
 
 
 
     public function getEmailSubject(): string
     {
-        return sprintf($_ENV[self::EMAIL_SUBJECT], $this->getServerHost());
+        return sprintf(getenv(self::EMAIL_SUBJECT), $this->getServerHost());
     }
 
 
 
     public function getFromEmail(): string
     {
-        return $_ENV[self::FROM_EMAIL];
+        return getenv(self::FROM_EMAIL);
     }
 
 
 
     public function getFromName(): string
     {
-        return $_ENV[self::FROM_NAME];
+        return getenv(self::FROM_NAME);
     }
 
 
 
     public function getRecipientsList(): array
     {
-        return explode(',', $_ENV[self::TO_EMAILS]);
+        return explode(',', getenv(self::TO_EMAILS));
     }
 
 
 
     public function getServerHost(): string
     {
-        return $_ENV[self::SERVER_HOST];
+        return getenv(self::SERVER_HOST);
     }
 }

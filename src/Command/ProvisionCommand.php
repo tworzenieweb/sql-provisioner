@@ -10,6 +10,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Finder\SplFileInfo;
+use Tworzenieweb\SqlProvisioner\Config\ProvisionConfig;
 use Tworzenieweb\SqlProvisioner\Controller\ProvisionDispatcher;
 use Tworzenieweb\SqlProvisioner\Database\Connection;
 use Tworzenieweb\SqlProvisioner\Filesystem\Exception;
@@ -19,7 +20,7 @@ use Tworzenieweb\SqlProvisioner\Model\CandidateBuilder;
 use Tworzenieweb\SqlProvisioner\Table\DataRowsBuilder;
 
 /**
- * @author Luke Adamczewski
+ * @author  Luke Adamczewski
  * @package Tworzenieweb\SqlProvisioner\Command
  */
 class ProvisionCommand extends Command
@@ -83,6 +84,8 @@ EOF;
     /** @var ProvisionDispatcher */
     private $dispatcher;
 
+    /** @var ProvisionConfig */
+    private $config;
 
 
     /**
@@ -92,6 +95,7 @@ EOF;
      * @param CandidateBuilder    $candidateBuilder
      * @param DataRowsBuilder     $dataRowsBuilder
      * @param ProvisionDispatcher $dispatcher
+     * @param ProvisionConfig     $config
      */
     public function __construct(
         $name,
@@ -99,14 +103,15 @@ EOF;
         Connection $connection,
         CandidateBuilder $candidateBuilder,
         DataRowsBuilder $dataRowsBuilder,
-        ProvisionDispatcher $dispatcher
-    )
-    {
+        ProvisionDispatcher $dispatcher,
+        ProvisionConfig $config
+    ) {
         $this->workingDirectory = $workingDirectory;
-        $this->connection = $connection;
+        $this->connection       = $connection;
         $this->candidateBuilder = $candidateBuilder;
-        $this->dataRowsBuilder = $dataRowsBuilder;
-        $this->dispatcher = $dispatcher;
+        $this->dataRowsBuilder  = $dataRowsBuilder;
+        $this->dispatcher       = $dispatcher;
+        $this->config           = $config;
 
         parent::__construct($name);
     }
@@ -130,26 +135,70 @@ EOF;
             InputOption::VALUE_NONE,
             'Skip executing of sql syntax check for each entry'
         );
+        $this->addOption(
+            'skip-email',
+            null,
+            InputOption::VALUE_NONE,
+            'Skip email notification after provision is done'
+        );
+        $this->addOption(
+            'force',
+            'f',
+            InputOption::VALUE_NONE,
+            'Execute provision candidates without asking for confirmation'
+        );
+        $this->addOption(
+            'env-file',
+            null,
+            InputOption::VALUE_OPTIONAL,
+            'Environment variables file path. Use this env file to seed base environment variables.'
+        );
         $this->addArgument('path', InputArgument::REQUIRED, 'Path to dbdeploys folder');
     }
 
+    protected function initialize(InputInterface $input, OutputInterface $output)
+    {
+        if ($envFile = $input->getOption('env-file')) {
+            $this->config->withEnvPath($envFile);
+        }
+
+        if ($input->getOption('force')) {
+            $this->config->force();
+        }
+
+        if ($input->getOption('skip-email')) {
+            $this->config->skipEmail();
+        }
+
+        if ($input->getOption('skip-syntax-check')) {
+            $this->config->skipSyntaxCheck();
+        }
+
+        if ($input->getOption('skip-provisioned')) {
+            $this->config->skipProvisioned();
+        }
+
+        $this->config->load();
+    }
 
     /**
-     * @param InputInterface $input
+     * @param InputInterface  $input
      * @param OutputInterface $output
+     *
      * @return int
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $this->start($input, $output);
         $this->io->section('Working directory processing');
+        $this->io->comment(sprintf('Using env file from [%s]', $this->config->getEnvPath()));
 
-        if ($input->getOption('skip-provisioned')) {
+        if ($this->config->isSkipProvisioned()) {
             $this->skipProvisionedCandidates = true;
             $this->io->warning('Hiding of provisioned candidates ENABLED');
         }
 
-        if ($input->getOption('skip-syntax-check')) {
+        if ($this->config->isSkipSyntaxCheck()) {
             $this->dispatcher->skipSyntaxCheck();
         }
 
@@ -161,7 +210,7 @@ EOF;
 
 
     /**
-     * @param InputInterface $input
+     * @param InputInterface  $input
      * @param OutputInterface $output
      */
     protected function start(InputInterface $input, OutputInterface $output)
@@ -263,7 +312,8 @@ EOF;
 
     private function setConnectionParameters()
     {
-        $this->connection->useMysql($_ENV['DATABASE_HOST'], $_ENV['DATABASE_PORT'], $_ENV['DATABASE_NAME'], $_ENV['DATABASE_USER'], $_ENV['DATABASE_PASSWORD']);
+        $this->connection->useMysql($_ENV['DATABASE_HOST'], $_ENV['DATABASE_PORT'], $_ENV['DATABASE_NAME'],
+                                    $_ENV['DATABASE_USER'], $_ENV['DATABASE_PASSWORD']);
         $this->connection->setProvisioningTable($_ENV['PROVISIONING_TABLE']);
         $this->connection->setCriteriaColumn($_ENV['PROVISIONING_TABLE_CANDIDATE_NUMBER_COLUMN']);
 
@@ -288,7 +338,7 @@ EOF;
         $this->io->table(
             DataRowsBuilder::TABLE_HEADERS,
             $this->dataRowsBuilder->build(
-            $this->workingDirectoryCandidates, $this->skipProvisionedCandidates)
+                $this->workingDirectoryCandidates, $this->skipProvisionedCandidates)
         );
         $this->io->newLine(3);
     }

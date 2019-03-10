@@ -5,6 +5,7 @@ namespace Tworzenieweb\SqlProvisioner\Controller;
 use RuntimeException;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Tworzenieweb\SqlProvisioner\Check\HasSyntaxCorrectCheck;
+use Tworzenieweb\SqlProvisioner\Config\ProvisionConfig;
 use Tworzenieweb\SqlProvisioner\Database\Exception;
 use Tworzenieweb\SqlProvisioner\Database\Executor;
 use Tworzenieweb\SqlProvisioner\Formatter\Sql;
@@ -34,6 +35,9 @@ class ProvisionDispatcher
     /** @var Sql */
     private $sqlFormatter;
 
+    /** @var ProvisionConfig */
+    private $config;
+
     /** @var SymfonyStyle */
     private $input;
 
@@ -44,7 +48,6 @@ class ProvisionDispatcher
     private $candidateIndexValue = 1;
 
 
-
     /**
      * ActionDispatcher constructor.
      *
@@ -52,18 +55,20 @@ class ProvisionDispatcher
      * @param CandidateProcessor    $processor
      * @param HasSyntaxCorrectCheck $check
      * @param Sql                   $sqlFormatter
+     * @param ProvisionConfig       $config
      */
     public function __construct(
         Executor $executor,
         CandidateProcessor $processor,
         HasSyntaxCorrectCheck $check,
-        Sql $sqlFormatter
-    ) 
-    {
-        $this->executor = $executor;
-        $this->processor = $processor;
-        $this->syntaxCheck = $check;
-        $this->sqlFormatter = $sqlFormatter;
+        Sql $sqlFormatter,
+        ProvisionConfig $config
+    ) {
+        $this->executor       = $executor;
+        $this->processor      = $processor;
+        $this->syntaxCheck    = $check;
+        $this->sqlFormatter   = $sqlFormatter;
+        $this->config         = $config;
         $this->startTimestamp = time();
     }
 
@@ -153,7 +158,9 @@ class ProvisionDispatcher
             )
         );
         $this->input->text($this->sqlFormatter->format($candidate->getContent()));
-        $action = $this->input->choice(
+        $action = $this->config->isForce()
+            ? self::ACTION_DEPLOY
+            : $this->input->choice(
             sprintf('What action to perform for "%s"', $candidate->getName()),
             [self::ACTION_DEPLOY, self::ACTION_SKIP, self::ACTION_QUIT]
         );

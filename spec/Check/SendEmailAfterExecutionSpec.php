@@ -6,7 +6,7 @@ use Tworzenieweb\SqlProvisioner\Check\CheckInterface;
 use Tworzenieweb\SqlProvisioner\Check\SendEmailAfterExecution;
 use PhpSpec\ObjectBehavior;
 use Prophecy\Argument;
-use Tworzenieweb\SqlProvisioner\Config\Config;
+use Tworzenieweb\SqlProvisioner\Config\EmailConfig;
 use Tworzenieweb\SqlProvisioner\Database\Connection;
 use Tworzenieweb\SqlProvisioner\Model\Candidate;
 use Tworzenieweb\SqlProvisioner\Service\Mailer;
@@ -26,7 +26,7 @@ class SendEmailAfterExecutionSpec extends ObjectBehavior
 
 
 
-    function let(Mailer $mailer, Config $config, View $view, Connection $connection)
+    function let(Mailer $mailer, EmailConfig $config, View $view, Connection $connection)
     {
         $this->beConstructedWith($mailer, $config, $view, $connection);
     }
@@ -37,7 +37,7 @@ class SendEmailAfterExecutionSpec extends ObjectBehavior
         $this->shouldImplement(CheckInterface::class);
     }
 
-    function it_should_send_email(Candidate $candidate, Config $config, Mailer $mailer, Connection $connection, View $view)
+    function it_should_send_email(Candidate $candidate, EmailConfig $config, Mailer $mailer, Connection $connection, View $view)
     {
         $candidate->getContent()->willReturn('DROP TABLE foo;');
         $candidate->getName()->willReturn('foo.sql');
