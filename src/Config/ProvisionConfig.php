@@ -124,7 +124,7 @@ class ProvisionConfig
         $loader = $this->composeDotenv();
         $loader->load();
 
-        if ($this->sendEmail === true) {
+        if ($this->emailConfig->isEnabled()) {
             $loader->required(EmailConfig::MANDATORY_ENV_VARIABLES)->notEmpty();
         }
     }
