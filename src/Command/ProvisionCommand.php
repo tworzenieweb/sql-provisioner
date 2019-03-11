@@ -312,12 +312,12 @@ EOF;
 
     private function setConnectionParameters()
     {
-        $this->connection->useMysql($_ENV['DATABASE_HOST'], $_ENV['DATABASE_PORT'], $_ENV['DATABASE_NAME'],
-                                    $_ENV['DATABASE_USER'], $_ENV['DATABASE_PASSWORD']);
-        $this->connection->setProvisioningTable($_ENV['PROVISIONING_TABLE']);
-        $this->connection->setCriteriaColumn($_ENV['PROVISIONING_TABLE_CANDIDATE_NUMBER_COLUMN']);
+        $this->connection->useMysql(getenv('DATABASE_HOST'), getenv('DATABASE_PORT'), getenv('DATABASE_NAME'),
+                                    getenv('DATABASE_USER'), getenv('DATABASE_PASSWORD'));
+        $this->connection->setProvisioningTable(getenv('PROVISIONING_TABLE'));
+        $this->connection->setCriteriaColumn(getenv('PROVISIONING_TABLE_CANDIDATE_NUMBER_COLUMN'));
 
-        $this->io->success(sprintf('Connection with `%s` established', $_ENV['DATABASE_NAME']));
+        $this->io->success(sprintf('Connection with `%s` established', getenv('DATABASE_NAME')));
     }
 
 

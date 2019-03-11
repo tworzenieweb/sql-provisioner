@@ -17,11 +17,11 @@ class EnvironmentLoaderSpec extends ObjectBehavior
     {
         $workingDirectory->getCurrentDirectoryAbsolute()->willReturn(__DIR__ . DIRECTORY_SEPARATOR . 'fixture');
         $this->load($workingDirectory);
-        expect($_ENV['DATABASE_USER'])->shouldBe('[user]');
-        expect($_ENV['DATABASE_PASSWORD'])->shouldBe('[password]');
-        expect($_ENV['DATABASE_PORT'])->shouldBe('[port]');
-        expect($_ENV['DATABASE_NAME'])->shouldBe('[database]');
-        expect($_ENV['PROVISIONING_TABLE'])->shouldBe('changelog_database_deployments');
-        expect($_ENV['PROVISIONING_TABLE_CANDIDATE_NUMBER_COLUMN'])->shouldBe('deploy_script_number');
+        expect(getenv('DATABASE_USER'))->shouldBe('[user]');
+        expect(getenv('DATABASE_PASSWORD'))->shouldBe('[password]');
+        expect(getenv('DATABASE_PORT'))->shouldBe('[port]');
+        expect(getenv('DATABASE_NAME'))->shouldBe('[database]');
+        expect(getenv('PROVISIONING_TABLE'))->shouldBe('changelog_database_deployments');
+        expect(getenv('PROVISIONING_TABLE_CANDIDATE_NUMBER_COLUMN'))->shouldBe('deploy_script_number');
     }
 }
