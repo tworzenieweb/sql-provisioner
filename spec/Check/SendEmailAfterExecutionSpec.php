@@ -47,6 +47,7 @@ class SendEmailAfterExecutionSpec extends ObjectBehavior
         $config->getFromName()->willReturn(self::FROM_NAME);
         $config->getRecipientsList()->willReturn(self::RECIPIENTS_LIST);
         $config->getServerHost()->willReturn(self::SERVER_ADDRESS);
+        $config->isEnabled()->willReturn(true);
         $connection->getDatabaseName()->willReturn('foo');
         $mailer->send(Argument::that(function (\Swift_Message $inputMessage) {
             return $inputMessage->getFrom() == [self::FROM_EMAIL => self::FROM_NAME] &&
